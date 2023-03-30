@@ -2,6 +2,7 @@ import type { AWS } from "@serverless/typescript";
 
 import functions from "./serverless/functions";
 import dynamoResources from "./serverless/dynamoResources";
+import AssetsBucketAndCloudfront from './serverless/AssetsBucketAndCloudfront';
 
 const serverlessConfiguration: AWS = {
   service: "duportfolioapi",
@@ -37,6 +38,7 @@ const serverlessConfiguration: AWS = {
   resources: {
     Resources: {
       ...dynamoResources,
+      ...AssetsBucketAndCloudfront,
     },
   },
   package: { individually: true },
