@@ -12,7 +12,7 @@ export const handler = async (_: APIGatewayProxyEvent) => {
       statusCode: 200,
       data: {
         message: "Retrieve projects successfully",
-        dynamoResponse,
+        projects: dynamoResponse.sort((a, b) => a.priority - b.priority),
       },
     });
   } catch (err) {
