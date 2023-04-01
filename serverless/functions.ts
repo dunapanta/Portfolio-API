@@ -12,7 +12,7 @@ const functions: AWS["functions"] = {
       },
     ],
   },
-  sendProjects: {
+  /* sendProjects: {
     handler: "src/functions/sendProjects/index.handler",
     events: [
       {
@@ -22,7 +22,7 @@ const functions: AWS["functions"] = {
         },
       },
     ],
-  },
+  }, */
 };
 
 export default functions;

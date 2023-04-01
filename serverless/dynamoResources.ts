@@ -4,7 +4,7 @@ const dynamoResources: AWS["resources"]["Resources"] = {
   portfolioTable: {
     Type: "AWS::DynamoDB::Table",
     Properties: {
-      TableName: "${self:custom.portfolioTable}",
+      TableName: "${self:custom.portfolioTableName}",
       AttributeDefinitions: [
         {
           AttributeName: "id",
