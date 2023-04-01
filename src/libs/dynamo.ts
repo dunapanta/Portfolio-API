@@ -6,6 +6,8 @@ import {
   PutCommandInput,
   QueryCommandInput,
   QueryCommand,
+  ScanCommand,
+  ScanCommandInput,
 } from "@aws-sdk/lib-dynamodb";
 
 //default region where lambda is deploying
@@ -35,6 +37,15 @@ export const dynamo = {
     const response = await dynamoClient.send(command);
 
     return response.Item;
+  },
+  getAll: async (tableName: string) => {
+    const params: ScanCommandInput = {
+      TableName: tableName,
+    };
+    const command = new ScanCommand(params);
+    const response = await dynamoClient.send(command);
+
+    return response.Items;
   },
   query: async ({
     tableName,
@@ -70,7 +81,7 @@ export const dynamo = {
       },
     };
 
-    if(skValue) {
+    if (skValue) {
       params.ExpressionAttributeValues[":rangeValue"] = skValue;
     }
 

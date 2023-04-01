@@ -12,17 +12,17 @@ const functions: AWS["functions"] = {
       },
     ],
   },
-  /* sendProjects: {
+  sendProjects: {
     handler: "src/functions/sendProjects/index.handler",
     events: [
       {
         httpApi: {
-          method: "post",
+          method: "get",
           path: "/projects",
         },
       },
     ],
-  }, */
+  },
 };
 
 export default functions;
