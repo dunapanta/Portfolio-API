@@ -50,8 +50,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     const fileInfo = await fileType.fileTypeFromBuffer(buffer);
     const detectedExtension = fileInfo?.ext;
     const detectedMime = fileInfo?.mime;
-    console.log("Mime:", detectedMime);
-    console.log("Extension:", detectedExtension);
+
     if (detectedMime !== projectImageMime) {
       return formatJSONResponse({
         statusCode: 400,
@@ -80,7 +79,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       proyectLinks,
       priority,
       projectTechnologies,
-      imageUrl: `${imageKey}`,
+      imageUrl: `https://${process.env.imageUploadBucket}.s3.amazonaws.com/${imageKey}`,
     };
     const dynamoResponse = await dynamo.write(dataDynamo, tableName);
     return formatJSONResponse({
