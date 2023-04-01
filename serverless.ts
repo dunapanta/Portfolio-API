@@ -18,7 +18,7 @@ const serverlessConfiguration: AWS = {
         Effect: "Allow",
         Action: "dynamodb:*",
         Resource: [
-          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.portfolioTable}",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.portfolioTableName}",
         ],
       },
       //S3
@@ -39,7 +39,7 @@ const serverlessConfiguration: AWS = {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
       NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
 
-      urlTable: "${self:custom.portfolioTable}",
+      portfolioTable: "${self:custom.portfolioTableName}",
       imageUploadBucket: "${self:custom.imageUploadBucket}",
     },
   },
@@ -48,13 +48,13 @@ const serverlessConfiguration: AWS = {
   resources: {
     Resources: {
       ...dynamoResources,
-      // S3
+      ...AssetsBucketAndCloudfront,
       
     },
   },
   package: { individually: true },
   custom: {
-    portfolioTable: "${sls:stage}-portfolioTable",
+    portfolioTableName: "${sls:stage}-portfolio-table",
     imageUploadBucket: "${sls:stage}-image-upload-bucket-du-portfolio",
     esbuild: {
       bundle: true,

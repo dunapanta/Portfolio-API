@@ -14,6 +14,7 @@
     "@aws-sdk/lib-dynamodb": "^3.301.0",
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
+    "file-type": "^18.2.1",
     "nanoid": "^4.0.2"
   },
   "devDependencies": {
