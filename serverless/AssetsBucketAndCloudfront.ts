@@ -4,9 +4,9 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
   AssetS3Bucket: {
     Type: 'AWS::S3::Bucket',
     Properties: {
-      BucketName: '${self:custom.assetBucketName}',
-      AccessControl: 'BucketOwnerFullControl',
-      CorsConfiguration: {
+      BucketName: '${self:custom.imageUploadBucket}',
+      AccessControl: 'PublicRead',
+      /* CorsConfiguration: {
         CorsRules: [
           {
             AllowedHeaders: ['*'],
@@ -20,17 +20,17 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
             ],
           },
         ],
-      },
-      PublicAccessBlockConfiguration: {
+      }, */
+      /* PublicAccessBlockConfiguration: {
         BlockPublicAcls: true,
         BlockPublicPolicy: true,
         IgnorePublicAcls: true,
         RestrictPublicBuckets: true,
-      },
+      }, */
     },
   },
 
-  CloudFrontDistribution: {
+  /* CloudFrontDistribution: {
     Type: 'AWS::CloudFront::Distribution',
     Properties: {
       DistributionConfig: {
@@ -67,7 +67,7 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
         },
       },
     },
-  },
+  }, */
 };
 
 export default AssetsBucketAndCloudfront;

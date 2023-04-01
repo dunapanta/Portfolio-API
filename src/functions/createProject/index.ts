@@ -4,14 +4,22 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
     const body = JSON.parse(event.body);
-    const { name, proyectLinks, priority, projectTechnologies } = body;
+    const { name, proyectLinks, priority, projectTechnologies, projectImage } =
+      body;
 
-    if (!name || !proyectLinks || !priority || !projectTechnologies) {
+    if (
+      !name ||
+      !proyectLinks ||
+      !priority ||
+      !projectTechnologies ||
+      !projectImage
+      //!projectImage.mime
+    ) {
       return formatJSONResponse({
         statusCode: 400,
         data: {
           message:
-            "Missing required parameters (name, proyectLinks, priority or projectTechnologies)",
+            "Missing required parameters (name, proyectLinks, priority, projectImage or projectTechnologies)",
         },
       });
     }

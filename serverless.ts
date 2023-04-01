@@ -2,7 +2,7 @@ import type { AWS } from "@serverless/typescript";
 
 import functions from "./serverless/functions";
 import dynamoResources from "./serverless/dynamoResources";
-import AssetsBucketAndCloudfront from './serverless/AssetsBucketAndCloudfront';
+import AssetsBucketAndCloudfront from "./serverless/AssetsBucketAndCloudfront";
 
 const serverlessConfiguration: AWS = {
   service: "duportfolioapi",
@@ -21,6 +21,15 @@ const serverlessConfiguration: AWS = {
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.portfolioTable}",
         ],
       },
+      //S3
+      {
+        Effect: "Allow",
+        Action: "s3:*",
+        Resource: [
+          "arn:aws:s3:::${self:custom.imageUploadBucket}",
+          "arn:aws:s3:::${self:custom.imageUploadBucket}/*",
+        ],
+      },
     ],
     apiGateway: {
       minimumCompressionSize: 1024,
@@ -29,8 +38,9 @@ const serverlessConfiguration: AWS = {
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
       NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
-      
+
       urlTable: "${self:custom.portfolioTable}",
+      imageUploadBucket: "${self:custom.imageUploadBucket}",
     },
   },
   // import the function via paths
@@ -38,12 +48,14 @@ const serverlessConfiguration: AWS = {
   resources: {
     Resources: {
       ...dynamoResources,
-      ...AssetsBucketAndCloudfront,
+      // S3
+      
     },
   },
   package: { individually: true },
   custom: {
     portfolioTable: "${sls:stage}-portfolioTable",
+    imageUploadBucket: "${sls:stage}-image-upload-bucket-du-portfolio",
     esbuild: {
       bundle: true,
       minify: false,
