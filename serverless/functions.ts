@@ -23,6 +23,25 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  sendEmail: {
+    handler: "src/functions/sendEmail/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/email",
+        },
+      },
+    ],
+     //@ts-expect-error
+     iamRoleStatements: [
+      {
+        Effect: "Allow",
+        Action: ["ses:SendEmail"],
+        Resource: "*",
+      },
+    ],
+  },
 };
 
 export default functions;
