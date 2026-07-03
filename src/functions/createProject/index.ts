@@ -1,10 +1,10 @@
-import * as AWS from "aws-sdk";
 import { APIGatewayProxyEvent } from "aws-lambda";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { formatJSONResponse } from "@libs/apiGateway";
 import { dynamo } from "@libs/dynamo";
 import * as fileType from "file-type";
 import { nanoid } from "nanoid";
-const s3 = new AWS.S3();
+const s3 = new S3Client({});
 const allowedMimeType = ["image/png", "image/jpeg", "image/jpg"];
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
@@ -63,15 +63,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     //Store S3
     const imageKey = `${identifier}.${detectedExtension}`;
     console.log("Imagen:", imageKey);
-    const s3Response = await s3
-      .putObject({
+    const s3Response = await s3.send(
+      new PutObjectCommand({
         Bucket: process.env.imageUploadBucket,
         Body: buffer,
         Key: imageKey,
         ContentType: projectImageMime,
         ACL: "public-read",
       })
-      .promise();
+    );
     //Save to DynamoDB
     const dataDynamo = {
       id: identifier,

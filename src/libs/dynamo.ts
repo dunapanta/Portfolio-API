@@ -4,6 +4,8 @@ import {
   GetCommandInput,
   PutCommand,
   PutCommandInput,
+  UpdateCommand,
+  UpdateCommandInput,
   QueryCommandInput,
   QueryCommand,
   ScanCommand,
@@ -47,6 +49,43 @@ export const dynamo = {
 
     return response.Items;
   },
+  update: async ({
+    id,
+    tableName,
+    data,
+  }: {
+    id: string;
+    tableName: string;
+    data: Record<string, any>;
+  }) => {
+    const entries = Object.entries(data).filter(([, value]) => value !== undefined);
+    if (!entries.length) return dynamo.get(id, tableName);
+
+    const ExpressionAttributeNames: Record<string, string> = {};
+    const ExpressionAttributeValues: Record<string, any> = {};
+    const updateExpressions = entries.map(([key, value]) => {
+      const nameKey = `#${key}`;
+      const valueKey = `:${key}`;
+      ExpressionAttributeNames[nameKey] = key;
+      ExpressionAttributeValues[valueKey] = value;
+      return `${nameKey} = ${valueKey}`;
+    });
+
+    const params: UpdateCommandInput = {
+      TableName: tableName,
+      Key: {
+        id,
+      },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    };
+    const command = new UpdateCommand(params);
+    const response = await dynamoClient.send(command);
+
+    return response.Attributes;
+  },
   query: async ({
     tableName,
     index,
@@ -76,6 +115,7 @@ export const dynamo = {
       TableName: tableName,
       IndexName: index,
       KeyConditionExpression: `${pkKey} = :hashValue${skExpression}`,
+      ScanIndexForward: sortAscending,
       ExpressionAttributeValues: {
         ":hashValue": pkValue,
       },

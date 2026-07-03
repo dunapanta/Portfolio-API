@@ -42,6 +42,50 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  createReelJob: {
+    handler: "src/functions/createReelJob/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/reels",
+        },
+      },
+    ],
+  },
+  getReelJob: {
+    handler: "src/functions/getReelJob/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/reels/{reelId}",
+        },
+      },
+    ],
+  },
+  updateReelJob: {
+    handler: "src/functions/updateReelJob/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "patch",
+          path: "/swipe2play/reels/{reelId}",
+        },
+      },
+    ],
+  },
+  createReelUpload: {
+    handler: "src/functions/createReelUpload/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/reels/{reelId}/uploads",
+        },
+      },
+    ],
+  },
 };
 
 export default functions;

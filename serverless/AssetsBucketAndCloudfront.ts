@@ -29,6 +29,41 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
       }, */
     },
   },
+  ReelAssetsS3Bucket: {
+    Type: 'AWS::S3::Bucket',
+    Properties: {
+      BucketName: '${self:custom.reelAssetsBucket}',
+      CorsConfiguration: {
+        CorsRules: [
+          {
+            AllowedHeaders: ['*'],
+            AllowedMethods: ['GET', 'HEAD', 'PUT'],
+            AllowedOrigins: ['*'],
+            ExposedHeaders: ['ETag'],
+            MaxAge: 3000,
+          },
+        ],
+      },
+      LifecycleConfiguration: {
+        Rules: [
+          {
+            Id: 'delete-temporary-reel-assets-after-seven-days',
+            Status: 'Enabled',
+            ExpirationInDays: '${self:custom.reelAssetTtlDays}',
+            AbortIncompleteMultipartUpload: {
+              DaysAfterInitiation: 1,
+            },
+          },
+        ],
+      },
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      },
+    },
+  },
 
   /* CloudFrontDistribution: {
     Type: 'AWS::CloudFront::Distribution',

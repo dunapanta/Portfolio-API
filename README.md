@@ -1,5 +1,49 @@
 # Serverless - AWS Node.js Typescript
 
+## Swipe2Play reels backend
+
+Base para guardar y publicar reels creados desde la web.
+
+- Runtime local recomendado: Node 24 (`.nvmrc`).
+- Runtime Lambda configurado: `nodejs22.x`, que es el runtime estable disponible en AWS.
+- Storage temporal: S3 privado `swipe2play-reel-assets`.
+- Registro: DynamoDB `swipe2play-reel-jobs`.
+- Limpieza: TTL en Dynamo + lifecycle de S3 a 7 dias.
+
+### Endpoints
+
+- `POST /swipe2play/reels`
+  Crea un reel job con `templateId`, metadata, segmentos, targets de publicacion y uploads opcionales. Si mandas uploads, devuelve URLs firmadas para subir los archivos.
+
+- `GET /swipe2play/reels/{reelId}`
+  Devuelve el estado del job y URLs firmadas temporales para descargar assets/render cuando existan.
+
+- `PATCH /swipe2play/reels/{reelId}`
+  Actualiza estado, assets, render, caption, publish targets o resultados de publicacion.
+
+- `POST /swipe2play/reels/{reelId}/uploads`
+  Crea una URL firmada nueva para subir un asset al bucket privado.
+
+### Ejemplo para crear un job
+
+```json
+{
+  "templateId": "swipe2play-default-v1",
+  "title": "Swipe2Play launch reel",
+  "source": "reel-maker",
+  "publishTargets": ["instagram", "facebook", "youtube"],
+  "uploads": [
+    {
+      "kind": "source-video",
+      "fileName": "reel.mp4",
+      "contentType": "video/mp4"
+    }
+  ]
+}
+```
+
+El backend no hace publico el archivo directamente: entrega URLs firmadas temporales. Para publicar en Meta, el siguiente paso es que el backend genere o reciba un `video_url` accesible temporalmente por Meta.
+
 ### CREATE PROJECT
 - `sls create --template aws-nodejs-typescript --path duPortfolioAPI`
 
