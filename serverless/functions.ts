@@ -86,6 +86,18 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  publishReel: {
+    handler: "src/functions/publishReel/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/reels/{reelId}/publish",
+        },
+      },
+    ],
+  },
   connectFacebook: {
     handler: "src/functions/connectFacebook/index.handler",
     events: [
