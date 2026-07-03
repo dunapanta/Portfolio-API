@@ -7,8 +7,12 @@ import {
   getSocialConnectionsTableName,
 } from "@libs/facebookOAuth";
 import { createDownloadUrl, getReelJobsTableName } from "@libs/reelJobs";
+import {
+  refreshYouTubeAccessToken,
+  youtubeConnectionId,
+} from "@libs/youtubeOAuth";
 
-type PublishPlatform = "facebook" | "instagram";
+type PublishPlatform = "facebook" | "instagram" | "youtube";
 
 type ReelAsset = {
   contentType?: string;
@@ -178,6 +182,98 @@ const publishFacebookVideo = async ({
   };
 };
 
+const splitTags = (value = "") =>
+  value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+const publishYouTubeShort = async ({
+  asset,
+  connection,
+  metadata,
+  videoUrl,
+}: {
+  asset: ReelAsset;
+  connection: Record<string, any>;
+  metadata: Record<string, any>;
+  videoUrl: string;
+}) => {
+  const refreshToken = connection.refreshToken;
+  if (!refreshToken) throw new Error("Missing YouTube refresh token in Dynamo.");
+
+  const videoResponse = await fetch(videoUrl);
+  if (!videoResponse.ok) {
+    throw new Error(`Unable to download reel from S3: ${await readTextResponse(videoResponse)}`);
+  }
+
+  const buffer = Buffer.from(await videoResponse.arrayBuffer());
+  const accessToken = await refreshYouTubeAccessToken(refreshToken);
+  const title = String(metadata.title || "Swipe2Play #Shorts").trim();
+  const description = String(metadata.description || "").trim();
+  const privacyStatus = String(metadata.privacyStatus || "unlisted");
+  const categoryId = String(metadata.categoryId || "20");
+  const tags = Array.isArray(metadata.tags)
+    ? metadata.tags
+    : splitTags(String(metadata.tags || "Swipe2Play,shorts,mobile game"));
+
+  const initResponse = await fetch(
+    "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Length": String(buffer.length),
+        "X-Upload-Content-Type": asset.contentType || "video/mp4",
+      },
+      body: JSON.stringify({
+        snippet: {
+          categoryId,
+          description,
+          tags,
+          title,
+        },
+        status: {
+          privacyStatus,
+          selfDeclaredMadeForKids: false,
+        },
+      }),
+    }
+  );
+
+  if (!initResponse.ok) {
+    throw new Error(`YouTube upload session failed: ${await readTextResponse(initResponse)}`);
+  }
+
+  const uploadUrl = initResponse.headers.get("location");
+  if (!uploadUrl) throw new Error("YouTube did not return an upload URL.");
+
+  const uploadResponse = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Length": String(buffer.length),
+      "Content-Type": asset.contentType || "video/mp4",
+    },
+    body: buffer,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error(`YouTube upload failed: ${await readTextResponse(uploadResponse)}`);
+  }
+
+  const published = await uploadResponse.json();
+  const id = (published as { id?: string }).id;
+
+  return {
+    id,
+    platform: "youtube",
+    raw: published,
+    shortsUrl: id ? `https://youtube.com/shorts/${id}` : undefined,
+    url: id ? `https://www.youtube.com/watch?v=${id}` : undefined,
+  };
+};
+
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
     const reelId = event.pathParameters?.reelId;
@@ -191,10 +287,10 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
-    if (platform !== "facebook" && platform !== "instagram") {
+    if (platform !== "facebook" && platform !== "instagram" && platform !== "youtube") {
       return formatJSONResponse({
         statusCode: 400,
-        data: { message: "platform must be facebook or instagram." },
+        data: { message: "platform must be facebook, instagram, or youtube." },
       });
     }
 
@@ -215,11 +311,14 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
-    const connection = await dynamo.get(facebookConnectionId, getSocialConnectionsTableName());
+    const connection = await dynamo.get(
+      platform === "youtube" ? youtubeConnectionId : facebookConnectionId,
+      getSocialConnectionsTableName()
+    );
     if (!connection) {
       return formatJSONResponse({
         statusCode: 401,
-        data: { message: "Connect Facebook before publishing." },
+        data: { message: `Connect ${platform} before publishing.` },
       });
     }
 
@@ -231,10 +330,17 @@ export const handler = async (event: APIGatewayProxyEvent) => {
             connection,
             videoUrl,
           })
-        : await publishFacebookVideo({
+        : platform === "facebook"
+        ? await publishFacebookVideo({
             connection,
             description: String(body.description || ""),
             title: String(body.title || "Swipe2Play"),
+            videoUrl,
+          })
+        : await publishYouTubeShort({
+            asset,
+            connection,
+            metadata: body,
             videoUrl,
           });
 

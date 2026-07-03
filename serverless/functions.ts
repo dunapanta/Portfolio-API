@@ -131,6 +131,39 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  connectYouTube: {
+    handler: "src/functions/connectYouTube/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/youtube/connect",
+        },
+      },
+    ],
+  },
+  youtubeCallback: {
+    handler: "src/functions/youtubeCallback/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/youtube/callback",
+        },
+      },
+    ],
+  },
+  youtubeStatus: {
+    handler: "src/functions/youtubeStatus/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/youtube/status",
+        },
+      },
+    ],
+  },
 };
 
 export default functions;

@@ -57,6 +57,9 @@ const serverlessConfiguration: AWS = {
       META_OAUTH_REDIRECT_URI: "${env:META_OAUTH_REDIRECT_URI, ''}",
       META_PAGE_ID: "${env:META_PAGE_ID, ''}",
       SWIPE2PLAY_REEL_MAKER_URL: "${env:SWIPE2PLAY_REEL_MAKER_URL, 'https://www.dunapant.dev/10000-offline-games/reel-maker'}",
+      YOUTUBE_CLIENT_ID: "${env:YOUTUBE_CLIENT_ID, ''}",
+      YOUTUBE_CLIENT_SECRET: "${env:YOUTUBE_CLIENT_SECRET, ''}",
+      YOUTUBE_OAUTH_REDIRECT_URI: "${env:YOUTUBE_OAUTH_REDIRECT_URI, ''}",
     },
   },
   // import the function via paths
