@@ -25,12 +25,22 @@ const redirectToReelMaker = (status: "connected" | "error", message?: string) =>
   return url.toString();
 };
 
+const getCookieHeader = (event: APIGatewayProxyEvent) => {
+  const eventWithCookies = event as APIGatewayProxyEvent & { cookies?: string[] };
+  return (
+    event.headers.cookie ||
+    event.headers.Cookie ||
+    eventWithCookies.cookies?.join("; ") ||
+    ""
+  );
+};
+
 export const handler = async (event: APIGatewayProxyEvent) => {
   const query = event.queryStringParameters ?? {};
   const code = query.code;
   const state = query.state;
   const error = query.error_description || query.error;
-  const cookies = parseCookies(event.headers.cookie || event.headers.Cookie || "");
+  const cookies = parseCookies(getCookieHeader(event));
 
   if (error) {
     return {
@@ -79,16 +89,17 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     };
 
     await dynamo.write(connection, getSocialConnectionsTableName());
+    const clearStateCookie = serializeCookie({
+      maxAge: 0,
+      name: "s2p_fb_oauth_state",
+      value: "",
+    });
 
     return {
       statusCode: 302,
+      cookies: [clearStateCookie],
       headers: {
         "Location": redirectToReelMaker("connected"),
-        "Set-Cookie": serializeCookie({
-          maxAge: 0,
-          name: "s2p_fb_oauth_state",
-          value: "",
-        }),
       },
       body: "",
     };

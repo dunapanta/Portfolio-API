@@ -8,17 +8,18 @@ import {
 export const handler = async (_event: APIGatewayProxyEvent) => {
   try {
     const state = createFacebookState();
+    const stateCookie = serializeCookie({
+      maxAge: 60 * 10,
+      name: "s2p_fb_oauth_state",
+      value: state,
+    });
 
     return {
       statusCode: 302,
+      cookies: [stateCookie],
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Location": getFacebookLoginUrl(state),
-        "Set-Cookie": serializeCookie({
-          maxAge: 60 * 10,
-          name: "s2p_fb_oauth_state",
-          value: state,
-        }),
       },
       body: "",
     };
