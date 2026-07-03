@@ -86,6 +86,39 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  connectFacebook: {
+    handler: "src/functions/connectFacebook/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/facebook/connect",
+        },
+      },
+    ],
+  },
+  facebookCallback: {
+    handler: "src/functions/facebookCallback/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/facebook/callback",
+        },
+      },
+    ],
+  },
+  facebookStatus: {
+    handler: "src/functions/facebookStatus/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/facebook/status",
+        },
+      },
+    ],
+  },
 };
 
 export default functions;

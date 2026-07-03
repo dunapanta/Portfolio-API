@@ -22,6 +22,7 @@ const serverlessConfiguration: AWS = {
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-template",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-status",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.socialConnectionsTableName}",
         ],
       },
       //S3
@@ -49,6 +50,13 @@ const serverlessConfiguration: AWS = {
       reelJobsTable: "${self:custom.reelJobsTableName}",
       reelAssetsBucket: "${self:custom.reelAssetsBucket}",
       reelAssetTtlDays: "${self:custom.reelAssetTtlDays}",
+      socialConnectionsTable: "${self:custom.socialConnectionsTableName}",
+      META_APP_ID: "${env:META_APP_ID, ''}",
+      META_APP_SECRET: "${env:META_APP_SECRET, ''}",
+      META_GRAPH_VERSION: "${env:META_GRAPH_VERSION, 'v25.0'}",
+      META_OAUTH_REDIRECT_URI: "${env:META_OAUTH_REDIRECT_URI, ''}",
+      META_PAGE_ID: "${env:META_PAGE_ID, ''}",
+      SWIPE2PLAY_REEL_MAKER_URL: "${env:SWIPE2PLAY_REEL_MAKER_URL, 'https://www.dunapant.dev/10000-offline-games/reel-maker'}",
     },
   },
   // import the function via paths
@@ -67,6 +75,7 @@ const serverlessConfiguration: AWS = {
     reelJobsTableName: "${sls:stage}-swipe2play-reel-jobs",
     reelAssetsBucket: "${sls:stage}-swipe2play-reel-assets-du-portfolio",
     reelAssetTtlDays: 7,
+    socialConnectionsTableName: "${sls:stage}-swipe2play-social-connections",
     esbuild: {
       bundle: true,
       minify: false,

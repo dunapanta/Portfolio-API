@@ -115,6 +115,29 @@ const dynamoResources: AWS["resources"]["Resources"] = {
       BillingMode: "PAY_PER_REQUEST",
     },
   },
+  socialConnectionsTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.socialConnectionsTableName}",
+      AttributeDefinitions: [
+        {
+          AttributeName: "id",
+          AttributeType: "S",
+        },
+      ],
+      KeySchema: [
+        {
+          AttributeName: "id",
+          KeyType: "HASH",
+        },
+      ],
+      TimeToLiveSpecification: {
+        AttributeName: "expiresAt",
+        Enabled: true,
+      },
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
 };
 
 export default dynamoResources;
