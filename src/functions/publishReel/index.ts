@@ -234,12 +234,29 @@ const publishFacebookVideo = async ({
 
   const published = await response.json();
   const id = (published as { id?: string }).id;
+  let url = id ? `https://www.facebook.com/reel/${id}/` : undefined;
+
+  if (id) {
+    const permalinkUrl = new URL(`${graphBaseUrl}/${id}`);
+    permalinkUrl.searchParams.set("fields", "permalink_url");
+    permalinkUrl.searchParams.set("access_token", accessToken);
+
+    const permalinkResponse = await fetch(permalinkUrl);
+    if (permalinkResponse.ok) {
+      const permalinkData = (await permalinkResponse.json()) as { permalink_url?: string };
+      if (permalinkData.permalink_url) {
+        url = permalinkData.permalink_url.startsWith("http")
+          ? permalinkData.permalink_url
+          : `https://www.facebook.com${permalinkData.permalink_url}`;
+      }
+    }
+  }
 
   return {
     id,
     platform: "facebook",
     raw: published,
-    url: id ? `https://www.facebook.com/${id}` : undefined,
+    url,
   };
 };
 
