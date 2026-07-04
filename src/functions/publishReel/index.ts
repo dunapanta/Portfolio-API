@@ -33,6 +33,7 @@ type InstagramPublishResult = {
   raw?: unknown;
   status?: "processing" | "published";
   statusCode?: string;
+  url?: string;
 };
 
 const readTextResponse = async (response: Response) => {
@@ -188,12 +189,28 @@ const publishInstagramReel = async ({
   }
 
   const published = await publishResponse.json();
+  const id = (published as { id?: string }).id;
+  let url: string | undefined;
+
+  if (id) {
+    const permalinkUrl = new URL(`${graphBaseUrl}/${id}`);
+    permalinkUrl.searchParams.set("fields", "permalink");
+    permalinkUrl.searchParams.set("access_token", accessToken);
+
+    const permalinkResponse = await fetch(permalinkUrl);
+    if (permalinkResponse.ok) {
+      const permalinkData = (await permalinkResponse.json()) as { permalink?: string };
+      url = permalinkData.permalink;
+    }
+  }
+
   return {
     containerId,
-    id: (published as { id?: string }).id,
+    id,
     status: "published",
     platform: "instagram",
     raw: published,
+    url,
   };
 };
 
