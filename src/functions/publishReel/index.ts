@@ -21,6 +21,20 @@ type ReelAsset = {
   kind?: string;
 };
 
+type InstagramContainerStatus = {
+  status_code?: string;
+};
+
+type InstagramPublishResult = {
+  containerId?: string;
+  id?: string;
+  message?: string;
+  platform: "instagram";
+  raw?: unknown;
+  status?: "processing" | "published";
+  statusCode?: string;
+};
+
 const readTextResponse = async (response: Response) => {
   const text = await response.text();
   try {
@@ -38,6 +52,27 @@ const selectPublishAsset = (assets: ReelAsset[]) => {
   );
 };
 
+const getInstagramContainerStatus = async ({
+  accessToken,
+  containerId,
+  graphBaseUrl,
+}: {
+  accessToken: string;
+  containerId: string;
+  graphBaseUrl: string;
+}) => {
+  const statusUrl = new URL(`${graphBaseUrl}/${containerId}`);
+  statusUrl.searchParams.set("fields", "status_code");
+  statusUrl.searchParams.set("access_token", accessToken);
+
+  const response = await fetch(statusUrl);
+  if (!response.ok) {
+    throw new Error(`Instagram status check failed: ${await readTextResponse(response)}`);
+  }
+
+  return (await response.json()) as InstagramContainerStatus;
+};
+
 const waitForInstagramContainer = async ({
   accessToken,
   containerId,
@@ -47,37 +82,43 @@ const waitForInstagramContainer = async ({
   containerId: string;
   graphBaseUrl: string;
 }) => {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const statusUrl = new URL(`${graphBaseUrl}/${containerId}`);
-    statusUrl.searchParams.set("fields", "status_code");
-    statusUrl.searchParams.set("access_token", accessToken);
+  let latestStatus: InstagramContainerStatus = {};
 
-    const response = await fetch(statusUrl);
-    if (!response.ok) {
-      throw new Error(`Instagram status check failed: ${await readTextResponse(response)}`);
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    latestStatus = await getInstagramContainerStatus({
+      accessToken,
+      containerId,
+      graphBaseUrl,
+    });
+
+    if (
+      latestStatus.status_code === "FINISHED" ||
+      latestStatus.status_code === "PUBLISHED"
+    ) {
+      return latestStatus;
     }
 
-    const data = (await response.json()) as { status_code?: string };
-    if (data.status_code === "FINISHED" || data.status_code === "PUBLISHED") return data;
-    if (data.status_code === "ERROR" || data.status_code === "EXPIRED") {
-      throw new Error(`Instagram container is ${data.status_code}.`);
+    if (latestStatus.status_code === "ERROR" || latestStatus.status_code === "EXPIRED") {
+      throw new Error(`Instagram container is ${latestStatus.status_code}.`);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 5_000));
   }
 
-  throw new Error("Instagram video is still processing. Try again in a minute.");
+  return latestStatus;
 };
 
 const publishInstagramReel = async ({
   caption,
   connection,
+  existingResult,
   videoUrl,
 }: {
   caption: string;
   connection: Record<string, any>;
+  existingResult?: InstagramPublishResult;
   videoUrl: string;
-}) => {
+}): Promise<InstagramPublishResult> => {
   const { graphBaseUrl } = getMetaConfig();
   const igUserId = connection.instagramBusinessAccountId;
   const accessToken = connection.userAccessToken;
@@ -86,36 +127,55 @@ const publishInstagramReel = async ({
     throw new Error("Missing Instagram account or user token in Dynamo.");
   }
 
-  const createBody = new URLSearchParams({
-    access_token: accessToken,
-    caption,
-    media_type: "REELS",
-    video_url: videoUrl,
-  });
-
-  const createResponse = await fetch(`${graphBaseUrl}/${igUserId}/media`, {
-    method: "POST",
-    body: createBody,
-  });
-
-  if (!createResponse.ok) {
-    throw new Error(
-      `Instagram container creation failed: ${await readTextResponse(createResponse)}`
-    );
+  if (existingResult?.status === "published" && existingResult.id) {
+    return existingResult;
   }
 
-  const created = (await createResponse.json()) as { id?: string };
-  if (!created.id) throw new Error("Instagram did not return a media container id.");
+  let containerId = existingResult?.status === "processing" ? existingResult.containerId : undefined;
 
-  await waitForInstagramContainer({
+  if (!containerId) {
+    const createBody = new URLSearchParams({
+      access_token: accessToken,
+      caption,
+      media_type: "REELS",
+      video_url: videoUrl,
+    });
+
+    const createResponse = await fetch(`${graphBaseUrl}/${igUserId}/media`, {
+      method: "POST",
+      body: createBody,
+    });
+
+    if (!createResponse.ok) {
+      throw new Error(
+        `Instagram container creation failed: ${await readTextResponse(createResponse)}`
+      );
+    }
+
+    const created = (await createResponse.json()) as { id?: string };
+    if (!created.id) throw new Error("Instagram did not return a media container id.");
+    containerId = created.id;
+  }
+
+  const status = await waitForInstagramContainer({
     accessToken,
-    containerId: created.id,
+    containerId,
     graphBaseUrl,
   });
 
+  if (status.status_code !== "FINISHED" && status.status_code !== "PUBLISHED") {
+    return {
+      containerId,
+      message: "Instagram video is still processing. Try again in a minute.",
+      platform: "instagram",
+      status: "processing",
+      statusCode: status.status_code || "IN_PROGRESS",
+    };
+  }
+
   const publishBody = new URLSearchParams({
     access_token: accessToken,
-    creation_id: created.id,
+    creation_id: containerId,
   });
 
   const publishResponse = await fetch(`${graphBaseUrl}/${igUserId}/media_publish`, {
@@ -129,8 +189,9 @@ const publishInstagramReel = async ({
 
   const published = await publishResponse.json();
   return {
-    containerId: created.id,
+    containerId,
     id: (published as { id?: string }).id,
+    status: "published",
     platform: "instagram",
     raw: published,
   };
@@ -323,11 +384,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     }
 
     const videoUrl = await createDownloadUrl(asset.key);
+    const publishResults =
+      typeof reel.publishResults === "object" ? reel.publishResults : {};
+    const existingPlatformResult = publishResults[platform];
     const result =
       platform === "instagram"
         ? await publishInstagramReel({
             caption: String(body.caption || ""),
             connection,
+            existingResult: existingPlatformResult as InstagramPublishResult | undefined,
             videoUrl,
           })
         : platform === "facebook"
@@ -344,11 +409,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
             videoUrl,
           });
 
-    const publishResults = {
-      ...(typeof reel.publishResults === "object" ? reel.publishResults : {}),
+    const resultStatus = (result as InstagramPublishResult).status;
+    const isInstagramProcessing = resultStatus === "processing";
+    const nextPublishResults = {
+      ...publishResults,
       [platform]: {
         ...result,
-        publishedAt: new Date().toISOString(),
+        ...(isInstagramProcessing
+          ? { updatedAt: new Date().toISOString() }
+          : { publishedAt: new Date().toISOString() }),
       },
     };
 
@@ -356,15 +425,18 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       id: reelId,
       tableName: getReelJobsTableName(),
       data: {
-        publishResults,
-        status: "published",
+        publishResults: nextPublishResults,
+        status: isInstagramProcessing ? "publishing" : "published",
         updatedAt: new Date().toISOString(),
       },
     });
 
     return formatJSONResponse({
+      statusCode: isInstagramProcessing ? 202 : 200,
       data: {
-        message: `${platform} publish completed.`,
+        message: isInstagramProcessing
+          ? (result as InstagramPublishResult).message
+          : `${platform} publish completed.`,
         reel: updatedReel,
         result,
       },
