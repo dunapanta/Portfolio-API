@@ -69,9 +69,12 @@ const summarizeReel = async (reel: Record<string, any>) => {
             publishedAt: publishResults.facebook.publishedAt,
             status: publishResults.facebook.status || "published",
             url: pickPublishUrl(publishResults.facebook),
-          }
+        }
         : undefined,
     },
+    metricsErrors: reel.metricsErrors,
+    metricsResults: reel.metricsResults,
+    metricsUpdatedAt: reel.metricsUpdatedAt,
     render: reel.render,
     source: reel.source,
     status: reel.status,

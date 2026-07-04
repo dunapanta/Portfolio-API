@@ -2,6 +2,7 @@ import * as crypto from "crypto";
 
 export const youtubeConnectionId = "swipe2play-youtube";
 export const youtubeUploadScope = "https://www.googleapis.com/auth/youtube.upload";
+export const youtubeReadonlyScope = "https://www.googleapis.com/auth/youtube.readonly";
 
 type GoogleTokenResponse = {
   access_token?: string;
@@ -38,7 +39,7 @@ export const getYouTubeLoginUrl = (state: string) => {
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", youtubeUploadScope);
+  url.searchParams.set("scope", [youtubeUploadScope, youtubeReadonlyScope].join(" "));
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("prompt", "consent");
   url.searchParams.set("include_granted_scopes", "true");

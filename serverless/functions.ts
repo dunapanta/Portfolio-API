@@ -109,6 +109,18 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  refreshReelMetrics: {
+    handler: "src/functions/refreshReelMetrics/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/reels/{reelId}/metrics",
+        },
+      },
+    ],
+  },
   connectFacebook: {
     handler: "src/functions/connectFacebook/index.handler",
     events: [
