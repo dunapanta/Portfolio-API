@@ -41,6 +41,19 @@ const serverlessConfiguration: AWS = {
       minimumCompressionSize: 1024,
       shouldStartNameWithService: true,
     },
+    httpApi: {
+      cors: {
+        allowedHeaders: ["Content-Type", "Authorization"],
+        allowedMethods: ["GET", "POST", "PATCH", "OPTIONS"],
+        allowedOrigins: [
+          "https://www.dunapant.dev",
+          "https://dunapant.dev",
+          "http://localhost:3000",
+          "http://localhost:3002",
+        ],
+        maxAge: 86400,
+      },
+    },
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
       NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
