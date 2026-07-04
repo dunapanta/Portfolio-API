@@ -131,4 +131,49 @@ export const dynamo = {
 
     return response.Items;
   },
+  queryPage: async ({
+    tableName,
+    index,
+
+    pkValue,
+    pkKey = "pk",
+
+    limit,
+    nextToken,
+    sortAscending = true,
+  }: {
+    tableName: string;
+    index: string;
+
+    pkValue: string;
+    pkKey?: string;
+
+    limit?: number;
+    nextToken?: string;
+    sortAscending?: boolean;
+  }) => {
+    const params: QueryCommandInput = {
+      TableName: tableName,
+      IndexName: index,
+      KeyConditionExpression: `${pkKey} = :hashValue`,
+      ScanIndexForward: sortAscending,
+      ExpressionAttributeValues: {
+        ":hashValue": pkValue,
+      },
+      ExclusiveStartKey: nextToken
+        ? JSON.parse(Buffer.from(nextToken, "base64").toString("utf8"))
+        : undefined,
+      Limit: limit,
+    };
+
+    const command = new QueryCommand(params);
+    const response = await dynamoClient.send(command);
+
+    return {
+      items: response.Items ?? [],
+      nextToken: response.LastEvaluatedKey
+        ? Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString("base64")
+        : undefined,
+    };
+  },
 };

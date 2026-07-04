@@ -53,6 +53,17 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  listReelJobs: {
+    handler: "src/functions/listReelJobs/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/reels",
+        },
+      },
+    ],
+  },
   getReelJob: {
     handler: "src/functions/getReelJob/index.handler",
     events: [
