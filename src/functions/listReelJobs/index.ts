@@ -9,6 +9,46 @@ const maxLimit = 50;
 const pickPublishUrl = (result: Record<string, any> | undefined) =>
   result?.shortsUrl || result?.url || result?.permalinkUrl || "";
 
+const publishPriority = (result?: Record<string, any>) => {
+  if (!result) return 0;
+  if (result.status === "published" || result.publishedAt || result.url || result.id) return 3;
+  if (result.status === "processing") return 2;
+  return 1;
+};
+
+const isNewer = (left?: string, right?: string) => {
+  if (!left) return false;
+  if (!right) return true;
+  return new Date(left).getTime() > new Date(right).getTime();
+};
+
+const pickPublishResult = (
+  current?: Record<string, any>,
+  incoming?: Record<string, any>
+) => {
+  const currentPriority = publishPriority(current);
+  const incomingPriority = publishPriority(incoming);
+
+  if (incomingPriority > currentPriority) return incoming;
+  if (incomingPriority < currentPriority) return current;
+  return isNewer(incoming?.publishedAt || incoming?.updatedAt, current?.publishedAt || current?.updatedAt)
+    ? incoming
+    : current;
+};
+
+const getReelSignature = (reel: Record<string, any>) => {
+  const primaryAsset = reel.primaryAsset ?? {};
+  const render = reel.render ?? {};
+
+  return [
+    reel.templateId,
+    reel.title || "",
+    primaryAsset.fileName || render.fileName || "",
+    primaryAsset.sizeBytes || render.sizeBytes || "",
+    render.durationSeconds || "",
+  ].join("|");
+};
+
 const summarizeReel = async (reel: Record<string, any>) => {
   const assets = Array.isArray(reel.assets) ? reel.assets : [];
   const publishResults = reel.publishResults ?? {};
@@ -19,6 +59,7 @@ const summarizeReel = async (reel: Record<string, any>) => {
 
   return {
     id: reel.id,
+    attemptCount: 1,
     assets: assets.map((asset: Record<string, any>) => ({
       contentType: asset.contentType,
       fileName: asset.fileName,
@@ -75,6 +116,7 @@ const summarizeReel = async (reel: Record<string, any>) => {
     metricsErrors: reel.metricsErrors,
     metricsResults: reel.metricsResults,
     metricsUpdatedAt: reel.metricsUpdatedAt,
+    relatedReelIds: [reel.id],
     render: reel.render,
     source: reel.source,
     status: reel.status,
@@ -82,6 +124,55 @@ const summarizeReel = async (reel: Record<string, any>) => {
     title: reel.title,
     updatedAt: reel.updatedAt,
   };
+};
+
+const groupReelSummaries = (reels: Array<Record<string, any>>) => {
+  const groups = new Map<string, Record<string, any>>();
+
+  reels.forEach((reel) => {
+    const signature = getReelSignature(reel);
+    const existing = groups.get(signature);
+
+    if (!existing) {
+      groups.set(signature, reel);
+      return;
+    }
+
+    const publishResults = {
+      facebook: pickPublishResult(existing.publishResults?.facebook, reel.publishResults?.facebook),
+      instagram: pickPublishResult(existing.publishResults?.instagram, reel.publishResults?.instagram),
+      youtube: pickPublishResult(existing.publishResults?.youtube, reel.publishResults?.youtube),
+    };
+    const metricsResults = {
+      ...existing.metricsResults,
+      ...reel.metricsResults,
+    };
+    const metricsErrors = {
+      ...existing.metricsErrors,
+      ...reel.metricsErrors,
+    };
+    const relatedReelIds = [
+      ...(existing.relatedReelIds ?? [existing.id]),
+      ...(reel.relatedReelIds ?? [reel.id]),
+    ];
+
+    groups.set(signature, {
+      ...existing,
+      attemptCount: (existing.attemptCount ?? 1) + (reel.attemptCount ?? 1),
+      createdAt: isNewer(existing.createdAt, reel.createdAt) ? reel.createdAt : existing.createdAt,
+      metricsErrors,
+      metricsResults,
+      metricsUpdatedAt: isNewer(reel.metricsUpdatedAt, existing.metricsUpdatedAt)
+        ? reel.metricsUpdatedAt
+        : existing.metricsUpdatedAt,
+      publishResults,
+      relatedReelIds,
+      status: Object.values(publishResults).some(Boolean) ? "published" : existing.status,
+      updatedAt: isNewer(reel.updatedAt, existing.updatedAt) ? reel.updatedAt : existing.updatedAt,
+    });
+  });
+
+  return Array.from(groups.values());
 };
 
 export const handler = async (event: APIGatewayProxyEvent) => {
@@ -104,7 +195,8 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       sortAscending: false,
     });
 
-    const reels = await Promise.all(items.map(summarizeReel));
+    const reelSummaries = await Promise.all(items.map(summarizeReel));
+    const reels = groupReelSummaries(reelSummaries);
 
     return formatJSONResponse({
       data: {
