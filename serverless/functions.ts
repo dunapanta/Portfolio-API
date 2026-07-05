@@ -172,6 +172,17 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  openAiStatus: {
+    handler: "src/functions/openAiStatus/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/openai/status",
+        },
+      },
+    ],
+  },
   connectFacebook: {
     handler: "src/functions/connectFacebook/index.handler",
     events: [

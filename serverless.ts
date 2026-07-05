@@ -42,6 +42,7 @@ const serverlessConfiguration: AWS = {
         Action: ["ssm:GetParameter"],
         Resource: [
           "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.elevenLabsApiKeyParameterName}",
+          "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.openAiApiKeyParameterName}",
         ],
       },
     ],
@@ -86,6 +87,8 @@ const serverlessConfiguration: AWS = {
       ELEVENLABS_DEFAULT_MODEL_ID: "${env:ELEVENLABS_DEFAULT_MODEL_ID, 'eleven_multilingual_v2'}",
       ELEVENLABS_DEFAULT_OUTPUT_FORMAT: "${env:ELEVENLABS_DEFAULT_OUTPUT_FORMAT, 'mp3_44100_128'}",
       ELEVENLABS_DEFAULT_VOICE_ID: "${env:ELEVENLABS_DEFAULT_VOICE_ID, '21m00Tcm4TlvDq8ikWAM'}",
+      OPENAI_API_KEY_PARAM: "${self:custom.openAiApiKeyParameterName}",
+      OPENAI_DEFAULT_MODEL: "${env:OPENAI_DEFAULT_MODEL, 'gpt-4.1-mini'}",
     },
   },
   // import the function via paths
@@ -106,6 +109,7 @@ const serverlessConfiguration: AWS = {
     reelAssetTtlDays: 7,
     gameContextsTableName: "${sls:stage}-swipe2play-game-contexts",
     elevenLabsApiKeyParameterName: "/duportfolioapi/${sls:stage}/elevenlabs/api-key",
+    openAiApiKeyParameterName: "/duportfolioapi/${sls:stage}/openai/api-key",
     socialConnectionsTableName: "${sls:stage}-swipe2play-social-connections",
     esbuild: {
       bundle: true,
