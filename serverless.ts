@@ -22,6 +22,7 @@ const serverlessConfiguration: AWS = {
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-template",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-status",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.gameContextsTableName}",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.socialConnectionsTableName}",
         ],
       },
@@ -63,6 +64,7 @@ const serverlessConfiguration: AWS = {
       reelJobsTable: "${self:custom.reelJobsTableName}",
       reelAssetsBucket: "${self:custom.reelAssetsBucket}",
       reelAssetTtlDays: "${self:custom.reelAssetTtlDays}",
+      gameContextsTable: "${self:custom.gameContextsTableName}",
       socialConnectionsTable: "${self:custom.socialConnectionsTableName}",
       META_APP_ID: "${env:META_APP_ID, ''}",
       META_APP_SECRET: "${env:META_APP_SECRET, ''}",
@@ -91,6 +93,7 @@ const serverlessConfiguration: AWS = {
     reelJobsTableName: "${sls:stage}-swipe2play-reel-jobs",
     reelAssetsBucket: "${sls:stage}-swipe2play-reel-assets-du-portfolio",
     reelAssetTtlDays: 7,
+    gameContextsTableName: "${sls:stage}-swipe2play-game-contexts",
     socialConnectionsTableName: "${sls:stage}-swipe2play-social-connections",
     esbuild: {
       bundle: true,

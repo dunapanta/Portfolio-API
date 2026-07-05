@@ -121,6 +121,34 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  listGameContexts: {
+    handler: "src/functions/listGameContexts/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/games",
+        },
+      },
+    ],
+  },
+  upsertGameContext: {
+    handler: "src/functions/upsertGameContext/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/games",
+        },
+      },
+      {
+        httpApi: {
+          method: "patch",
+          path: "/swipe2play/games/{gameId}",
+        },
+      },
+    ],
+  },
   connectFacebook: {
     handler: "src/functions/connectFacebook/index.handler",
     events: [
