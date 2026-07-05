@@ -178,6 +178,18 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  generateGameReelPhrase: {
+    handler: "src/functions/generateGameReelPhrase/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/games/{gameId}/reel-phrase",
+        },
+      },
+    ],
+  },
   elevenLabsStatus: {
     handler: "src/functions/elevenLabsStatus/index.handler",
     events: [
