@@ -37,6 +37,13 @@ const serverlessConfiguration: AWS = {
           "arn:aws:s3:::${self:custom.reelAssetsBucket}/*",
         ],
       },
+      {
+        Effect: "Allow",
+        Action: ["ssm:GetParameter"],
+        Resource: [
+          "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.elevenLabsApiKeyParameterName}",
+        ],
+      },
     ],
     apiGateway: {
       minimumCompressionSize: 1024,
@@ -75,6 +82,10 @@ const serverlessConfiguration: AWS = {
       YOUTUBE_CLIENT_ID: "${env:YOUTUBE_CLIENT_ID, ''}",
       YOUTUBE_CLIENT_SECRET: "${env:YOUTUBE_CLIENT_SECRET, ''}",
       YOUTUBE_OAUTH_REDIRECT_URI: "${env:YOUTUBE_OAUTH_REDIRECT_URI, ''}",
+      ELEVENLABS_API_KEY_PARAM: "${self:custom.elevenLabsApiKeyParameterName}",
+      ELEVENLABS_DEFAULT_MODEL_ID: "${env:ELEVENLABS_DEFAULT_MODEL_ID, 'eleven_multilingual_v2'}",
+      ELEVENLABS_DEFAULT_OUTPUT_FORMAT: "${env:ELEVENLABS_DEFAULT_OUTPUT_FORMAT, 'mp3_44100_128'}",
+      ELEVENLABS_DEFAULT_VOICE_ID: "${env:ELEVENLABS_DEFAULT_VOICE_ID, '21m00Tcm4TlvDq8ikWAM'}",
     },
   },
   // import the function via paths
@@ -94,6 +105,7 @@ const serverlessConfiguration: AWS = {
     reelAssetsBucket: "${sls:stage}-swipe2play-reel-assets-du-portfolio",
     reelAssetTtlDays: 7,
     gameContextsTableName: "${sls:stage}-swipe2play-game-contexts",
+    elevenLabsApiKeyParameterName: "/duportfolioapi/${sls:stage}/elevenlabs/api-key",
     socialConnectionsTableName: "${sls:stage}-swipe2play-social-connections",
     esbuild: {
       bundle: true,

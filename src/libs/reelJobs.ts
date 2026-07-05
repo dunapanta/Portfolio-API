@@ -20,7 +20,8 @@ export type ReelAssetKind =
   | "cta-video"
   | "cta-audio"
   | "rendered-video"
-  | "manual-video";
+  | "manual-video"
+  | "voiceover-audio";
 
 export type ReelUploadRequest = {
   contentType?: string;
@@ -86,4 +87,23 @@ export const createDownloadUrl = async (key: string) => {
   });
 
   return getSignedUrl(s3, command, { expiresIn: signedUrlSeconds });
+};
+
+export const putReelAssetObject = async ({
+  body,
+  contentType,
+  key,
+}: {
+  body: Buffer | Uint8Array;
+  contentType: string;
+  key: string;
+}) => {
+  const command = new PutObjectCommand({
+    Body: body,
+    Bucket: getReelAssetsBucketName(),
+    ContentType: contentType,
+    Key: key,
+  });
+
+  await s3.send(command);
 };

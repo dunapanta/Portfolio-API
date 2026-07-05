@@ -149,6 +149,29 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  elevenLabsStatus: {
+    handler: "src/functions/elevenLabsStatus/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/voice/status",
+        },
+      },
+    ],
+  },
+  createVoiceover: {
+    handler: "src/functions/createVoiceover/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/voiceovers",
+        },
+      },
+    ],
+  },
   connectFacebook: {
     handler: "src/functions/connectFacebook/index.handler",
     events: [
