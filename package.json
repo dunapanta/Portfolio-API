@@ -20,6 +20,7 @@
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
     "@remotion/lambda": "^4.0.220",
+    "@remotion/studio": "4.0.220",
     "file-type": "^18.2.1",
     "nanoid": "^4.0.2"
   },
