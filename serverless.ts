@@ -94,7 +94,7 @@ const serverlessConfiguration: AWS = {
       ELEVENLABS_DEFAULT_OUTPUT_FORMAT: "${env:ELEVENLABS_DEFAULT_OUTPUT_FORMAT, 'mp3_44100_128'}",
       ELEVENLABS_DEFAULT_VOICE_ID: "${env:ELEVENLABS_DEFAULT_VOICE_ID, '21m00Tcm4TlvDq8ikWAM'}",
       OPENAI_API_KEY_PARAM: "${self:custom.openAiApiKeyParameterName}",
-      OPENAI_DEFAULT_MODEL: "${env:OPENAI_DEFAULT_MODEL, 'gpt-5.5'}",
+      OPENAI_DEFAULT_MODEL: "${env:OPENAI_DEFAULT_MODEL, 'gpt-5.4-mini'}",
     },
   },
   // import the function via paths

@@ -2,7 +2,7 @@ import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 
 const ssm = new SSMClient({});
 
-const defaultModel = "gpt-5.5";
+const defaultModel = "gpt-5.4-mini";
 
 let cachedApiKey: string | undefined;
 
