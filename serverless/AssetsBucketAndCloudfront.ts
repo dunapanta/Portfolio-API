@@ -64,6 +64,29 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
       },
     },
   },
+  GameMediaS3Bucket: {
+    Type: 'AWS::S3::Bucket',
+    Properties: {
+      BucketName: '${self:custom.gameMediaBucket}',
+      CorsConfiguration: {
+        CorsRules: [
+          {
+            AllowedHeaders: ['*'],
+            AllowedMethods: ['GET', 'HEAD', 'PUT'],
+            AllowedOrigins: ['*'],
+            ExposedHeaders: ['ETag'],
+            MaxAge: 3000,
+          },
+        ],
+      },
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      },
+    },
+  },
 
   /* CloudFrontDistribution: {
     Type: 'AWS::CloudFront::Distribution',

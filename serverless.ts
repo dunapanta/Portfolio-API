@@ -23,6 +23,8 @@ const serverlessConfiguration: AWS = {
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-template",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-status",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.gameContextsTableName}",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.gameMediaAssetsTableName}",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.gameMediaAssetsTableName}/index/GSI-game-media-by-game",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.socialConnectionsTableName}",
         ],
       },
@@ -35,6 +37,8 @@ const serverlessConfiguration: AWS = {
           "arn:aws:s3:::${self:custom.imageUploadBucket}/*",
           "arn:aws:s3:::${self:custom.reelAssetsBucket}",
           "arn:aws:s3:::${self:custom.reelAssetsBucket}/*",
+          "arn:aws:s3:::${self:custom.gameMediaBucket}",
+          "arn:aws:s3:::${self:custom.gameMediaBucket}/*",
         ],
       },
       {
@@ -53,7 +57,7 @@ const serverlessConfiguration: AWS = {
     httpApi: {
       cors: {
         allowedHeaders: ["Content-Type", "Authorization"],
-        allowedMethods: ["GET", "POST", "PATCH", "OPTIONS"],
+        allowedMethods: ["DELETE", "GET", "POST", "PATCH", "OPTIONS"],
         allowedOrigins: [
           "https://www.dunapant.dev",
           "https://dunapant.dev",
@@ -71,6 +75,8 @@ const serverlessConfiguration: AWS = {
       imageUploadBucket: "${self:custom.imageUploadBucket}",
       reelJobsTable: "${self:custom.reelJobsTableName}",
       reelAssetsBucket: "${self:custom.reelAssetsBucket}",
+      gameMediaAssetsTable: "${self:custom.gameMediaAssetsTableName}",
+      gameMediaBucket: "${self:custom.gameMediaBucket}",
       reelAssetTtlDays: "${self:custom.reelAssetTtlDays}",
       gameContextsTable: "${self:custom.gameContextsTableName}",
       socialConnectionsTable: "${self:custom.socialConnectionsTableName}",
@@ -106,6 +112,8 @@ const serverlessConfiguration: AWS = {
     imageUploadBucket: "${sls:stage}-image-upload-bucket-du-portfolio",
     reelJobsTableName: "${sls:stage}-swipe2play-reel-jobs",
     reelAssetsBucket: "${sls:stage}-swipe2play-reel-assets-du-portfolio",
+    gameMediaAssetsTableName: "${sls:stage}-swipe2play-game-media-assets",
+    gameMediaBucket: "${sls:stage}-swipe2play-game-media-du-portfolio",
     reelAssetTtlDays: 7,
     gameContextsTableName: "${sls:stage}-swipe2play-game-contexts",
     elevenLabsApiKeyParameterName: "/duportfolioapi/${sls:stage}/elevenlabs/api-key",

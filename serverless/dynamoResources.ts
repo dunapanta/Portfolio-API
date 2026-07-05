@@ -134,6 +134,51 @@ const dynamoResources: AWS["resources"]["Resources"] = {
       BillingMode: "PAY_PER_REQUEST",
     },
   },
+  gameMediaAssetsTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.gameMediaAssetsTableName}",
+      AttributeDefinitions: [
+        {
+          AttributeName: "id",
+          AttributeType: "S",
+        },
+        {
+          AttributeName: "gameId",
+          AttributeType: "S",
+        },
+        {
+          AttributeName: "createdAt",
+          AttributeType: "S",
+        },
+      ],
+      KeySchema: [
+        {
+          AttributeName: "id",
+          KeyType: "HASH",
+        },
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "GSI-game-media-by-game",
+          KeySchema: [
+            {
+              AttributeName: "gameId",
+              KeyType: "HASH",
+            },
+            {
+              AttributeName: "createdAt",
+              KeyType: "RANGE",
+            },
+          ],
+          Projection: {
+            ProjectionType: "ALL",
+          },
+        },
+      ],
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
   socialConnectionsTable: {
     Type: "AWS::DynamoDB::Table",
     Properties: {

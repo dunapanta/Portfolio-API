@@ -149,6 +149,35 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  gameMediaAssets: {
+    handler: "src/functions/gameMediaAssets/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/games/{gameId}/media",
+        },
+      },
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/games/{gameId}/media",
+        },
+      },
+      {
+        httpApi: {
+          method: "patch",
+          path: "/swipe2play/games/{gameId}/media/{mediaId}",
+        },
+      },
+      {
+        httpApi: {
+          method: "delete",
+          path: "/swipe2play/games/{gameId}/media/{mediaId}",
+        },
+      },
+    ],
+  },
   elevenLabsStatus: {
     handler: "src/functions/elevenLabsStatus/index.handler",
     events: [

@@ -4,6 +4,8 @@ import {
   GetCommandInput,
   PutCommand,
   PutCommandInput,
+  DeleteCommand,
+  DeleteCommandInput,
   UpdateCommand,
   UpdateCommandInput,
   QueryCommandInput,
@@ -27,6 +29,17 @@ export const dynamo = {
     await dynamoClient.send(command);
 
     return data;
+  },
+  delete: async (id: string, tableName: string) => {
+    const params: DeleteCommandInput = {
+      TableName: tableName,
+      Key: {
+        id,
+      },
+    };
+    const command = new DeleteCommand(params);
+
+    await dynamoClient.send(command);
   },
   get: async (id: string, tableName: string) => {
     const params: GetCommandInput = {
