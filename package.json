@@ -19,6 +19,7 @@
     "@aws-sdk/s3-request-presigner": "^3.948.0",
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
+    "@remotion/lambda": "^4.0.220",
     "file-type": "^18.2.1",
     "nanoid": "^4.0.2"
   },

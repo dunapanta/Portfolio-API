@@ -80,9 +80,9 @@ export const createUploadUrl = async ({
   return getSignedUrl(s3, command, { expiresIn: signedUrlSeconds });
 };
 
-export const createDownloadUrl = async (key: string) => {
+export const createDownloadUrl = async (key: string, bucketName = getReelAssetsBucketName()) => {
   const command = new GetObjectCommand({
-    Bucket: getReelAssetsBucketName(),
+    Bucket: bucketName,
     Key: key,
   });
 

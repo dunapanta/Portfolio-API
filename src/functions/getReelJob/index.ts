@@ -30,7 +30,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     const assetsWithUrls = await Promise.all(
       assets.map(async (asset: Record<string, any>) => ({
         ...asset,
-        downloadUrl: asset.key ? await createDownloadUrl(asset.key) : undefined,
+        downloadUrl: asset.key ? await createDownloadUrl(asset.key, asset.bucket) : undefined,
       }))
     );
 

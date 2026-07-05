@@ -53,6 +53,30 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  createTemplateReelRender: {
+    handler: "src/functions/createTemplateReelRender/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/reels/render-template",
+        },
+      },
+    ],
+  },
+  getTemplateReelRender: {
+    handler: "src/functions/getTemplateReelRender/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/reels/{reelId}/render",
+        },
+      },
+    ],
+  },
   listReelJobs: {
     handler: "src/functions/listReelJobs/index.handler",
     events: [

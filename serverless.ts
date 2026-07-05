@@ -49,6 +49,12 @@ const serverlessConfiguration: AWS = {
           "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.openAiApiKeyParameterName}",
         ],
       },
+      {
+        Effect: "Allow",
+        Action: ["lambda:InvokeFunction"],
+        Resource:
+          "arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:${self:custom.remotionLambdaFunctionName}",
+      },
     ],
     apiGateway: {
       minimumCompressionSize: 1024,
@@ -95,6 +101,11 @@ const serverlessConfiguration: AWS = {
       ELEVENLABS_DEFAULT_VOICE_ID: "${env:ELEVENLABS_DEFAULT_VOICE_ID, '21m00Tcm4TlvDq8ikWAM'}",
       OPENAI_API_KEY_PARAM: "${self:custom.openAiApiKeyParameterName}",
       OPENAI_DEFAULT_MODEL: "${env:OPENAI_DEFAULT_MODEL, 'gpt-5.4-mini'}",
+      REMOTION_AWS_REGION: "${env:REMOTION_AWS_REGION, 'us-east-1'}",
+      REMOTION_FRAMES_PER_LAMBDA: "${env:REMOTION_FRAMES_PER_LAMBDA, '30'}",
+      REMOTION_LAMBDA_FUNCTION_NAME: "${env:REMOTION_LAMBDA_FUNCTION_NAME, self:custom.remotionLambdaFunctionName}",
+      REMOTION_SERVE_URL: "${env:REMOTION_SERVE_URL, self:custom.remotionServeUrl}",
+      REMOTION_TEMPLATE_ONE_COMPOSITION: "${env:REMOTION_TEMPLATE_ONE_COMPOSITION, 'Swipe2PlayHookGameplayTemplate'}",
     },
   },
   // import the function via paths
@@ -118,6 +129,10 @@ const serverlessConfiguration: AWS = {
     gameContextsTableName: "${sls:stage}-swipe2play-game-contexts",
     elevenLabsApiKeyParameterName: "/duportfolioapi/${sls:stage}/elevenlabs/api-key",
     openAiApiKeyParameterName: "/duportfolioapi/${sls:stage}/openai/api-key",
+    remotionLambdaFunctionName:
+      "remotion-render-4-0-220-mem2048mb-disk2048mb-120sec",
+    remotionServeUrl:
+      "https://remotionlambda-useast1-fsl5eevwd6.s3.us-east-1.amazonaws.com/sites/swipe2play-reels/index.html",
     socialConnectionsTableName: "${sls:stage}-swipe2play-social-connections",
     esbuild: {
       bundle: true,

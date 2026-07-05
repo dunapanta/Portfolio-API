@@ -61,6 +61,7 @@ const summarizeReel = async (reel: Record<string, any>) => {
     id: reel.id,
     attemptCount: 1,
     assets: assets.map((asset: Record<string, any>) => ({
+      bucket: asset.bucket,
       contentType: asset.contentType,
       fileName: asset.fileName,
       key: asset.key,
@@ -73,7 +74,10 @@ const summarizeReel = async (reel: Record<string, any>) => {
     primaryAsset: primaryAsset
       ? {
           contentType: primaryAsset.contentType,
-          downloadUrl: primaryAsset.key ? await createDownloadUrl(primaryAsset.key) : undefined,
+          bucket: primaryAsset.bucket,
+          downloadUrl: primaryAsset.key
+            ? await createDownloadUrl(primaryAsset.key, primaryAsset.bucket)
+            : undefined,
           fileName: primaryAsset.fileName,
           key: primaryAsset.key,
           kind: primaryAsset.kind,

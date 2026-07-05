@@ -15,6 +15,7 @@ import {
 type PublishPlatform = "facebook" | "instagram" | "youtube";
 
 type ReelAsset = {
+  bucket?: string;
   contentType?: string;
   fileName?: string;
   key?: string;
@@ -417,7 +418,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
-    const videoUrl = await createDownloadUrl(asset.key);
+    const videoUrl = await createDownloadUrl(asset.key, asset.bucket);
     const publishResults =
       typeof reel.publishResults === "object" ? reel.publishResults : {};
     const existingPlatformResult = publishResults[platform];
