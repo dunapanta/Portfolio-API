@@ -47,6 +47,10 @@ const serverlessConfiguration: AWS = {
         Resource: [
           "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.elevenLabsApiKeyParameterName}",
           "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.openAiApiKeyParameterName}",
+          "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.metaAppIdParameterName}",
+          "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.metaAppSecretParameterName}",
+          "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.metaOauthRedirectUriParameterName}",
+          "arn:aws:ssm:${self:provider.region}:${aws:accountId}:parameter${self:custom.metaPageIdParameterName}",
         ],
       },
       {
@@ -86,11 +90,11 @@ const serverlessConfiguration: AWS = {
       reelAssetTtlDays: "${self:custom.reelAssetTtlDays}",
       gameContextsTable: "${self:custom.gameContextsTableName}",
       socialConnectionsTable: "${self:custom.socialConnectionsTableName}",
-      META_APP_ID: "${env:META_APP_ID, ''}",
-      META_APP_SECRET: "${env:META_APP_SECRET, ''}",
+      META_APP_ID: "${env:META_APP_ID, ssm:${self:custom.metaAppIdParameterName}}",
+      META_APP_SECRET: "${env:META_APP_SECRET, ssm:${self:custom.metaAppSecretParameterName}}",
       META_GRAPH_VERSION: "${env:META_GRAPH_VERSION, 'v25.0'}",
-      META_OAUTH_REDIRECT_URI: "${env:META_OAUTH_REDIRECT_URI, ''}",
-      META_PAGE_ID: "${env:META_PAGE_ID, ''}",
+      META_OAUTH_REDIRECT_URI: "${env:META_OAUTH_REDIRECT_URI, ssm:${self:custom.metaOauthRedirectUriParameterName}}",
+      META_PAGE_ID: "${env:META_PAGE_ID, ssm:${self:custom.metaPageIdParameterName}}",
       SWIPE2PLAY_REEL_MAKER_URL: "${env:SWIPE2PLAY_REEL_MAKER_URL, 'https://www.dunapant.dev/10000-offline-games/reel-maker'}",
       YOUTUBE_CLIENT_ID: "${env:YOUTUBE_CLIENT_ID, ''}",
       YOUTUBE_CLIENT_SECRET: "${env:YOUTUBE_CLIENT_SECRET, ''}",
@@ -129,6 +133,10 @@ const serverlessConfiguration: AWS = {
     gameContextsTableName: "${sls:stage}-swipe2play-game-contexts",
     elevenLabsApiKeyParameterName: "/duportfolioapi/${sls:stage}/elevenlabs/api-key",
     openAiApiKeyParameterName: "/duportfolioapi/${sls:stage}/openai/api-key",
+    metaAppIdParameterName: "/duportfolioapi/${sls:stage}/meta/app-id",
+    metaAppSecretParameterName: "/duportfolioapi/${sls:stage}/meta/app-secret",
+    metaOauthRedirectUriParameterName: "/duportfolioapi/${sls:stage}/meta/oauth-redirect-uri",
+    metaPageIdParameterName: "/duportfolioapi/${sls:stage}/meta/page-id",
     remotionLambdaFunctionName:
       "remotion-render-4-0-220-mem2048mb-disk2048mb-120sec",
     remotionServeUrl:
