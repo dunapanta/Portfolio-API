@@ -11,8 +11,9 @@ import {
   refreshYouTubeAccessToken,
   youtubeConnectionId,
 } from "@libs/youtubeOAuth";
+import { refreshXAccessToken, xConnectionId } from "@libs/xOAuth";
 
-type PublishPlatform = "facebook" | "instagram" | "youtube";
+type PublishPlatform = "facebook" | "instagram" | "youtube" | "x";
 
 type ReelAsset = {
   bucket?: string;
@@ -370,6 +371,178 @@ const publishYouTubeShort = async ({
   };
 };
 
+const uploadXVideo = async ({
+  accessToken,
+  asset,
+  buffer,
+}: {
+  accessToken: string;
+  asset: ReelAsset;
+  buffer: Buffer;
+}) => {
+  const mediaType = asset.contentType || "video/mp4";
+  const initForm = new FormData();
+  initForm.append("command", "INIT");
+  initForm.append("media_type", mediaType);
+  initForm.append("total_bytes", String(buffer.length));
+  initForm.append("media_category", "tweet_video");
+
+  const initResponse = await fetch("https://api.x.com/2/media/upload", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: initForm,
+  });
+
+  if (!initResponse.ok) {
+    throw new Error(`X media init failed: ${await readTextResponse(initResponse)}`);
+  }
+
+  const initialized = (await initResponse.json()) as { data?: { id?: string } };
+  const mediaId = initialized.data?.id;
+  if (!mediaId) throw new Error("X did not return a media id.");
+
+  const chunkSize = 4 * 1024 * 1024;
+  let segmentIndex = 0;
+  for (let offset = 0; offset < buffer.length; offset += chunkSize) {
+    const chunk = buffer.subarray(offset, Math.min(offset + chunkSize, buffer.length));
+    const appendForm = new FormData();
+    appendForm.append("command", "APPEND");
+    appendForm.append("media_id", mediaId);
+    appendForm.append("segment_index", String(segmentIndex));
+    appendForm.append("media", new Blob([chunk], { type: mediaType }), asset.fileName || "reel.mp4");
+
+    const appendResponse = await fetch("https://api.x.com/2/media/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: appendForm,
+    });
+
+    if (!appendResponse.ok) {
+      throw new Error(`X media append failed: ${await readTextResponse(appendResponse)}`);
+    }
+
+    segmentIndex += 1;
+  }
+
+  const finalizeForm = new FormData();
+  finalizeForm.append("command", "FINALIZE");
+  finalizeForm.append("media_id", mediaId);
+
+  const finalizeResponse = await fetch("https://api.x.com/2/media/upload", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: finalizeForm,
+  });
+
+  if (!finalizeResponse.ok) {
+    throw new Error(`X media finalize failed: ${await readTextResponse(finalizeResponse)}`);
+  }
+
+  let finalized = (await finalizeResponse.json()) as {
+    data?: { processing_info?: { check_after_secs?: number; error?: unknown; state?: string } };
+  };
+  let processingInfo = finalized.data?.processing_info;
+
+  for (let attempt = 0; processingInfo && attempt < 12; attempt += 1) {
+    const state = processingInfo.state;
+    if (state === "succeeded") return mediaId;
+    if (state === "failed") {
+      throw new Error(`X media processing failed: ${JSON.stringify(processingInfo.error ?? {})}`);
+    }
+
+    const waitSeconds = Math.min(processingInfo.check_after_secs ?? 2, 10);
+    await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
+
+    const statusUrl = new URL("https://api.x.com/2/media/upload");
+    statusUrl.searchParams.set("command", "STATUS");
+    statusUrl.searchParams.set("media_id", mediaId);
+
+    const statusResponse = await fetch(statusUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!statusResponse.ok) {
+      throw new Error(`X media status failed: ${await readTextResponse(statusResponse)}`);
+    }
+
+    finalized = await statusResponse.json();
+    processingInfo = finalized.data?.processing_info;
+  }
+
+  if (processingInfo && processingInfo.state !== "succeeded") {
+    throw new Error("X media is still processing. Try publishing again in a minute.");
+  }
+
+  return mediaId;
+};
+
+const publishXPost = async ({
+  asset,
+  connection,
+  metadata,
+  videoUrl,
+}: {
+  asset: ReelAsset;
+  connection: Record<string, any>;
+  metadata: Record<string, any>;
+  videoUrl: string;
+}) => {
+  const refreshToken = connection.refreshToken;
+  if (!refreshToken) throw new Error("Missing X refresh token in Dynamo.");
+
+  const token = await refreshXAccessToken(refreshToken);
+  if (token.refresh_token && token.refresh_token !== refreshToken) {
+    await dynamo.update({
+      id: xConnectionId,
+      tableName: getSocialConnectionsTableName(),
+      data: {
+        accessToken: token.access_token,
+        accessTokenExpiresAt: token.expires_in
+          ? Math.floor(Date.now() / 1000) + token.expires_in
+          : undefined,
+        refreshToken: token.refresh_token,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  const videoResponse = await fetch(videoUrl);
+  if (!videoResponse.ok) {
+    throw new Error(`Unable to download reel from S3: ${await readTextResponse(videoResponse)}`);
+  }
+
+  const buffer = Buffer.from(await videoResponse.arrayBuffer());
+  const mediaId = await uploadXVideo({ accessToken: token.access_token!, asset, buffer });
+  const text = String(metadata.text || metadata.description || "Play on swipe2play.app").trim();
+
+  const postResponse = await fetch("https://api.x.com/2/tweets", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      media: { media_ids: [mediaId] },
+      text,
+    }),
+  });
+
+  if (!postResponse.ok) {
+    throw new Error(`X post failed: ${await readTextResponse(postResponse)}`);
+  }
+
+  const posted = (await postResponse.json()) as { data?: { id?: string; text?: string } };
+  const id = posted.data?.id;
+
+  return {
+    id,
+    mediaId,
+    platform: "x",
+    raw: posted,
+    url: id ? `https://x.com/i/web/status/${id}` : undefined,
+  };
+};
+
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
     const reelId = event.pathParameters?.reelId;
@@ -383,10 +556,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
-    if (platform !== "facebook" && platform !== "instagram" && platform !== "youtube") {
+    if (
+      platform !== "facebook" &&
+      platform !== "instagram" &&
+      platform !== "youtube" &&
+      platform !== "x"
+    ) {
       return formatJSONResponse({
         statusCode: 400,
-        data: { message: "platform must be facebook, instagram, or youtube." },
+        data: { message: "platform must be facebook, instagram, youtube, or x." },
       });
     }
 
@@ -408,7 +586,11 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     }
 
     const connection = await dynamo.get(
-      platform === "youtube" ? youtubeConnectionId : facebookConnectionId,
+      platform === "youtube"
+        ? youtubeConnectionId
+        : platform === "x"
+        ? xConnectionId
+        : facebookConnectionId,
       getSocialConnectionsTableName()
     );
     if (!connection) {
@@ -435,6 +617,13 @@ export const handler = async (event: APIGatewayProxyEvent) => {
             connection,
             description: String(body.description || ""),
             title: String(body.title || "Swipe2Play"),
+            videoUrl,
+          })
+        : platform === "x"
+        ? await publishXPost({
+            asset,
+            connection,
+            metadata: body,
             videoUrl,
           })
         : await publishYouTubeShort({

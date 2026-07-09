@@ -314,6 +314,39 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  connectX: {
+    handler: "src/functions/connectX/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/x/connect",
+        },
+      },
+    ],
+  },
+  xCallback: {
+    handler: "src/functions/xCallback/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/x/callback",
+        },
+      },
+    ],
+  },
+  xStatus: {
+    handler: "src/functions/xStatus/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/swipe2play/x/status",
+        },
+      },
+    ],
+  },
 };
 
 export default functions;

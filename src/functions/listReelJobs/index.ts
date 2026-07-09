@@ -116,6 +116,16 @@ const summarizeReel = async (reel: Record<string, any>) => {
             url: pickPublishUrl(publishResults.facebook),
         }
         : undefined,
+      x: publishResults.x
+        ? {
+            id: publishResults.x.id,
+            mediaId: publishResults.x.mediaId,
+            platform: "x",
+            publishedAt: publishResults.x.publishedAt,
+            status: publishResults.x.status || "published",
+            url: pickPublishUrl(publishResults.x),
+          }
+        : undefined,
     },
     metricsErrors: reel.metricsErrors,
     metricsResults: reel.metricsResults,
@@ -146,6 +156,7 @@ const groupReelSummaries = (reels: Array<Record<string, any>>) => {
       facebook: pickPublishResult(existing.publishResults?.facebook, reel.publishResults?.facebook),
       instagram: pickPublishResult(existing.publishResults?.instagram, reel.publishResults?.instagram),
       youtube: pickPublishResult(existing.publishResults?.youtube, reel.publishResults?.youtube),
+      x: pickPublishResult(existing.publishResults?.x, reel.publishResults?.x),
     };
     const metricsResults = {
       ...existing.metricsResults,
