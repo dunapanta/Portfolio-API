@@ -1,5 +1,7 @@
 # Serverless - AWS Node.js Typescript
 
+> **Tweet Studio** (rutas `/tweet-studio/*`, crons de auto-publicación a X): ver [TWEET_STUDIO.md](./TWEET_STUDIO.md) — incluye referencia de API con ejemplos `curl` pensada para agentes de IA.
+
 ## Swipe2Play reels backend
 
 Base para guardar y publicar reels creados desde la web.

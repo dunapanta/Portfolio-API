@@ -91,6 +91,100 @@ Reglas transversales que aplica el prompt:
 - OpenAI `gpt-5.4-mini` con ~900 tokens de salida por generación → ~$0.001 por tweet.
 - Sin links en tweets → mejor alcance orgánico sin gastar en ads.
 
+## Referencia de API para agentes (Codex, Claude, etc.)
+
+Si eres una IA trabajando con este proyecto, esto es todo lo que necesitas para operar Tweet Studio sin leer el código.
+
+**Base URL:** no se publica en este repo porque los endpoints no tienen auth. Tómala de `NEXT_PUBLIC_PORTLOADER_API` en `Portfolio-du/.env.local` (mismo directorio padre que este repo), o de la salida de `npx serverless info`. En los ejemplos, `$BASE` es esa URL.
+Todas las respuestas son JSON con `message`; errores devuelven 4xx/5xx con `{ "message": "..." }`.
+
+### Receta 1 — Subir el contexto del día (lo más común)
+
+```bash
+curl -X POST "$BASE/tweet-studio/activity" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Trigger Storm",
+    "context": "Creamos un top-down shooter en Godot en 1 día. Código con Claude Fable 5, modelos 3D con la API de Tripo. Armas con crates, escudos, física de rebote.",
+    "appId": "10000-offline-games",
+    "toolsUsed": ["Claude Fable 5", "Tripo API", "Godot"],
+    "tags": ["gamedev", "indiedev"]
+  }'
+# → 201 { "activity": { "id": "act_…", "status": "pending", … } }
+```
+
+Con eso basta: el cron `planDailyTweets` lo convertirá en tweet automáticamente al día siguiente. Campos: solo `context` es obligatorio. `status` nace en `pending`; pasa a `used` cuando se agenda un tweet desde él.
+
+### Receta 2 — Adjuntar captura o video (2 pasos)
+
+```bash
+# Paso 1: pedir presigned URL
+curl -X POST "$BASE/tweet-studio/media" \
+  -H "Content-Type: application/json" \
+  -d '{ "fileName": "trigger_storm.png", "contentType": "image/png", "sizeBytes": 812345 }'
+# → { "media": { "key": "tweet-studio/2026-07-10/image/…png", "kind": "image" }, "uploadUrl": "https://s3…" }
+
+# Paso 2: subir el archivo al uploadUrl
+curl -X PUT "<uploadUrl>" -H "Content-Type: image/png" --data-binary @trigger_storm.png
+```
+
+Luego incluye `media: [{ "key": "<key del paso 1>", "kind": "image" }]` en el body de la actividad (Receta 1) o del tweet (Receta 4). Límites de X: imagen ≤ 5MB, video ≤ 512MB, máx 4 imágenes **o** 1 video por tweet.
+
+### Receta 3 — Generar drafts con OpenAI
+
+```bash
+# Desde un registro guardado:
+curl -X POST "$BASE/tweet-studio/generate" \
+  -H "Content-Type: application/json" \
+  -d '{ "activityId": "act_…", "count": 3 }'
+
+# O con contexto inline (sin guardar registro):
+curl -X POST "$BASE/tweet-studio/generate" \
+  -H "Content-Type: application/json" \
+  -d '{ "context": "Hoy shippeamos X con Y", "count": 3, "tone": "confident indie builder" }'
+# → { "drafts": [{ "format": "build-in-public", "text": "…", "hashtags": ["#indiedev"], "threadParts": ["…"] }], "model": "gpt-5.4-mini" }
+```
+
+`formats` opcional: array con ids de `build-in-public`, `before-after`, `how-i-built`, `contrarian`, `lesson-learned`, `listicle`.
+
+### Receta 4 — Programar un tweet
+
+```bash
+curl -X POST "$BASE/tweet-studio/tweets" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Day 1 of trigger_storm:\nfull top-down shooter, built with Fable 5 + Tripo.",
+    "hashtags": ["#buildinpublic", "#gamedev"],
+    "scheduledAt": "2026-07-11T20:00:00-05:00",
+    "media": [{ "key": "tweet-studio/…/….png", "kind": "image" }],
+    "sourceActivityId": "act_…",
+    "threadParts": ["Tools: Godot + Tripo API for the 3D models."]
+  }'
+# → 201 { "tweet": { "id": "twt_…", "status": "scheduled", "scheduledAt": 1783738800 } }
+```
+
+`scheduledAt` acepta ISO string o epoch (segundos o ms); si lo omites, se agenda a +10 min. `status: "draft"` lo guarda sin publicar. El cron lo postea cuando llega la hora. Al programar con `sourceActivityId`, esa actividad se marca `used`.
+
+### Receta 5 — Gestionar la cola
+
+```bash
+curl "$BASE/tweet-studio/tweets"                          # listar (más recientes primero)
+curl -X PATCH "$BASE/tweet-studio/tweets/twt_…" \
+  -H "Content-Type: application/json" \
+  -d '{ "text": "nuevo texto", "scheduledAt": "2026-07-12T13:00:00-05:00" }'   # editar (no si ya posteó)
+curl -X POST "$BASE/tweet-studio/tweets/twt_…/publish"    # publicar YA (ignora la hora)
+curl -X DELETE "$BASE/tweet-studio/tweets/twt_…"          # eliminar
+curl "$BASE/tweet-studio/status"                          # conexión X, contadores, config
+```
+
+Estados de un tweet: `draft → scheduled → publishing → posted` (o `failed` con campo `error`, reintenta con `/publish`; o `canceled`). Cuando postea: `tweetUrl` y `xTweetId` quedan en el registro.
+
+### Reglas para el agente
+
+- Sé específico en `context`: herramientas, números, tiempo que tomó. El prompt de OpenAI tiene prohibido inventar métricas, así que lo que no esté en el contexto no saldrá en el tweet.
+- No incluyas links en los tweets (reducen alcance y es preferencia del dueño).
+- Verifica `GET /tweet-studio/status` antes de publicar: `connected` debe ser `true` y `canPostMedia` `true` si adjuntas media.
+
 ## Flujo diario típico
 
 1. Terminas algo → le dices a Claude "sube el contexto de hoy" o lo pegas en `/tweet-studio` → pestaña **Contexto** (con captura/video drag & drop).
