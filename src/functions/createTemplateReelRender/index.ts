@@ -19,13 +19,32 @@ import {
   putReelAssetObject,
 } from "@libs/reelJobs";
 import {
-  startSwipe2PlayTemplateOneRender,
-  Swipe2PlayTemplateOneRenderInput,
+  getRemotionLambdaConfig,
+  startSwipe2PlayTemplateRender,
 } from "@libs/remotionLambda";
 
 const templateOneId = "swipe2play-hook-gameplay-v1";
+const templateTwoId = "swipe2play-challenge-countdown-v1";
 const fps = 30;
 const defaultVoiceId = "FF7KdobWPaiR0vkcALHF";
+
+// Template registry. To add a template: register it here, create the Remotion
+// composition, and redeploy the Remotion site (see Portfolio-du/REEL_TEMPLATES.md).
+const templates: Record<
+  string,
+  { label: string; requiresHook: boolean; getComposition: () => string }
+> = {
+  [templateOneId]: {
+    label: "Template 1",
+    requiresHook: true,
+    getComposition: () => getRemotionLambdaConfig().composition,
+  },
+  [templateTwoId]: {
+    label: "Template 2",
+    requiresHook: false,
+    getComposition: () => getRemotionLambdaConfig().templateTwoComposition,
+  },
+};
 
 const secondsToFrames = (seconds: unknown, fallbackSeconds: number) => {
   const parsed = Number(seconds);
@@ -47,6 +66,7 @@ const getGameMediaAsset = async (assetId: string) =>
 export const handler = async (event: APIGatewayProxyEvent) => {
   const now = new Date().toISOString();
   let reelId = "";
+  let failedTemplateId = templateOneId;
 
   try {
     const body = event.body ? JSON.parse(event.body) : {};
@@ -59,28 +79,34 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       templateId = templateOneId,
       title,
     } = body;
+    failedTemplateId = templateId;
 
-    if (templateId !== templateOneId) {
+    const template = templates[templateId];
+    if (!template) {
       return formatJSONResponse({
         statusCode: 400,
         data: {
-          message: "Only Template 1 is supported right now.",
+          message: `Unknown templateId. Supported: ${Object.keys(templates).join(", ")}.`,
         },
       });
     }
 
-    if (!gameId || !hookAssetId || !gameplayAssetId) {
+    if (!gameId || !gameplayAssetId || (template.requiresHook && !hookAssetId)) {
       return formatJSONResponse({
         statusCode: 400,
         data: {
-          message: "Missing gameId, hookAssetId or gameplayAssetId.",
+          message: template.requiresHook
+            ? "Missing gameId, hookAssetId or gameplayAssetId."
+            : "Missing gameId or gameplayAssetId.",
         },
       });
     }
 
     const [game, hookAsset, gameplayAsset] = await Promise.all([
       dynamo.get(gameId, getGameContextsTableName()),
-      getGameMediaAsset(hookAssetId),
+      template.requiresHook && hookAssetId
+        ? getGameMediaAsset(hookAssetId)
+        : Promise.resolve(undefined),
       getGameMediaAsset(gameplayAssetId),
     ]);
 
@@ -91,7 +117,10 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
-    if (!hookAsset || hookAsset.gameId !== gameId || hookAsset.mediaKind !== "hook") {
+    if (
+      template.requiresHook &&
+      (!hookAsset || hookAsset.gameId !== gameId || hookAsset.mediaKind !== "hook")
+    ) {
       return formatJSONResponse({
         statusCode: 404,
         data: { message: "Hook video not found for this game." },
@@ -146,35 +175,73 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     });
 
     const [hookVideoSrc, gameplayVideoSrc, voiceoverAudioSrc] = await Promise.all([
-      createGameMediaDownloadUrl(hookAsset.key),
+      hookAsset ? createGameMediaDownloadUrl(hookAsset.key) : Promise.resolve(""),
       createGameMediaDownloadUrl(gameplayAsset.key),
       createDownloadUrl(voiceoverKey),
     ]);
 
-    const hookFrames = secondsToFrames(hookAsset.durationSeconds, 3);
+    const hookFrames = hookAsset
+      ? secondsToFrames(hookAsset.durationSeconds, 3)
+      : 0;
     const gameplayFrames = secondsToFrames(gameplayAsset.durationSeconds, 8);
-    const outputFileName = `swipe2play-${game.name || game.gameId}-template-1-${Date.now()}.mp4`;
+    const templateSlug = templateId === templateTwoId ? "template-2" : "template-1";
+    const outputFileName = `swipe2play-${game.name || game.gameId}-${templateSlug}-${Date.now()}.mp4`;
     const outputKey = `swipe2play/reels/${reelId}/rendered/${outputFileName}`;
     const outputBucket = getReelAssetsBucketName();
-    const inputProps: Swipe2PlayTemplateOneRenderInput = {
-      appUrl: "swipe2play.app",
-      challengeText: phrase,
-      fps,
-      gameTitle: game.title || game.name || "Swipe2Play",
-      gameplayDurationInFrames: gameplayFrames,
-      gameplayVideoSrc,
-      hookDurationInFrames: hookFrames,
-      hookVideoSrc,
-      voiceoverAudioSrc,
-    };
 
-    const lambdaRender = await startSwipe2PlayTemplateOneRender({
+    const gameTitle = game.title || game.name || "Swipe2Play";
+    const inputProps: Record<string, unknown> =
+      templateId === templateTwoId
+        ? {
+            appUrl: "swipe2play.app",
+            challengeText: phrase,
+            fps,
+            gameTitle,
+            gameplayDurationInFrames: gameplayFrames,
+            gameplayVideoSrc,
+            hookLine: String(body.hookLine || "").trim() || "ONLY 1% BEAT THIS",
+            timerSeconds: Number(body.timerSeconds) > 0 ? Number(body.timerSeconds) : 10,
+            voiceoverAudioSrc,
+          }
+        : {
+            appUrl: "swipe2play.app",
+            challengeText: phrase,
+            fps,
+            gameTitle,
+            gameplayDurationInFrames: gameplayFrames,
+            gameplayVideoSrc,
+            hookDurationInFrames: hookFrames,
+            hookVideoSrc,
+            voiceoverAudioSrc,
+          };
+
+    const lambdaRender = await startSwipe2PlayTemplateRender({
+      composition: template.getComposition(),
       inputProps,
       outName: {
         bucketName: outputBucket,
         key: outputKey,
       },
     });
+
+    const durationFrames =
+      templateId === templateTwoId ? gameplayFrames : hookFrames + gameplayFrames;
+    const segments = [
+      ...(hookAsset
+        ? [
+            {
+              assetId: hookAsset.id,
+              durationSeconds: hookAsset.durationSeconds,
+              kind: "hook",
+            },
+          ]
+        : []),
+      {
+        assetId: gameplayAsset.id,
+        durationSeconds: gameplayAsset.durationSeconds,
+        kind: "gameplay",
+      },
+    ];
 
     const reelJob = {
       id: reelId,
@@ -192,7 +259,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       expiresAt,
       gameId,
       render: {
-        durationSeconds: (hookFrames + gameplayFrames) / fps,
+        durationSeconds: durationFrames / fps,
         fileName: outputFileName,
         inputProps,
         lambda: {
@@ -210,22 +277,11 @@ export const handler = async (event: APIGatewayProxyEvent) => {
         phrase,
         voiceText,
       },
-      segments: [
-        {
-          assetId: hookAsset.id,
-          durationSeconds: hookAsset.durationSeconds,
-          kind: "hook",
-        },
-        {
-          assetId: gameplayAsset.id,
-          durationSeconds: gameplayAsset.durationSeconds,
-          kind: "gameplay",
-        },
-      ],
+      segments,
       source: "aws-remotion-template-render",
       status: "rendering",
       templateId,
-      title: title || `${game.title || game.name} Template 1`,
+      title: title || `${gameTitle} ${template.label}`,
       updatedAt: now,
     };
 
@@ -249,7 +305,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
           error: err instanceof Error ? err.message : "Unable to start render.",
           source: "aws-remotion-template-render",
           status: "failed",
-          templateId: templateOneId,
+          templateId: failedTemplateId,
           updatedAt: new Date().toISOString(),
         },
         getReelJobsTableName()

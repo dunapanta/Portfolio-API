@@ -22,9 +22,24 @@ export type Swipe2PlayTemplateOneRenderInput = {
   voiceoverAudioSrc: string;
 };
 
+export type Swipe2PlayTemplateTwoRenderInput = {
+  appUrl: string;
+  challengeText: string;
+  fps: number;
+  gameTitle: string;
+  gameplayDurationInFrames: number;
+  gameplayVideoSrc: string;
+  hookLine: string;
+  timerSeconds: number;
+  voiceoverAudioSrc: string;
+};
+
 export const getRemotionLambdaConfig = () => ({
   composition:
     process.env.REMOTION_TEMPLATE_ONE_COMPOSITION || defaultComposition,
+  templateTwoComposition:
+    process.env.REMOTION_TEMPLATE_TWO_COMPOSITION ||
+    "Swipe2PlayChallengeCountdownTemplate",
   framesPerLambda: Number(
     process.env.REMOTION_FRAMES_PER_LAMBDA || defaultFramesPerLambda
   ),
@@ -63,11 +78,13 @@ export const assertRemotionServeUrl = () => {
   return serveUrl;
 };
 
-export const startSwipe2PlayTemplateOneRender = async ({
+export const startSwipe2PlayTemplateRender = async ({
+  composition,
   inputProps,
   outName,
 }: {
-  inputProps: Swipe2PlayTemplateOneRenderInput;
+  composition?: string;
+  inputProps: Record<string, unknown>;
   outName: OutNameInput<any>;
 }) => {
   const config = getRemotionLambdaConfig();
@@ -76,7 +93,7 @@ export const startSwipe2PlayTemplateOneRender = async ({
 
   const result = await renderMediaOnLambda({
     codec: "h264",
-    composition: config.composition,
+    composition: composition || config.composition,
     deleteAfter: "7-days",
     downloadBehavior: {
       type: "download",
@@ -106,6 +123,14 @@ export const startSwipe2PlayTemplateOneRender = async ({
     serveUrl,
   };
 };
+
+export const startSwipe2PlayTemplateOneRender = ({
+  inputProps,
+  outName,
+}: {
+  inputProps: Swipe2PlayTemplateOneRenderInput;
+  outName: OutNameInput<any>;
+}) => startSwipe2PlayTemplateRender({ inputProps, outName });
 
 export const getSwipe2PlayRenderProgress = async ({
   bucketName,

@@ -129,6 +129,7 @@ const serverlessConfiguration: AWS = {
       REMOTION_LAMBDA_FUNCTION_NAME: "${env:REMOTION_LAMBDA_FUNCTION_NAME, self:custom.remotionLambdaFunctionName}",
       REMOTION_SERVE_URL: "${env:REMOTION_SERVE_URL, self:custom.remotionServeUrl}",
       REMOTION_TEMPLATE_ONE_COMPOSITION: "${env:REMOTION_TEMPLATE_ONE_COMPOSITION, 'Swipe2PlayHookGameplayTemplate'}",
+      REMOTION_TEMPLATE_TWO_COMPOSITION: "${env:REMOTION_TEMPLATE_TWO_COMPOSITION, 'Swipe2PlayChallengeCountdownTemplate'}",
     },
   },
   // import the function via paths
