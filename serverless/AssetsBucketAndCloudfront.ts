@@ -87,6 +87,44 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
       },
     },
   },
+  // Tweet Studio media (screenshots / short clips). Private bucket, browser
+  // uploads via presigned PUT, auto-deletes after tweetMediaTtlDays so we keep
+  // storage cheap. The publisher reads the object back to push it to X.
+  TweetMediaS3Bucket: {
+    Type: 'AWS::S3::Bucket',
+    Properties: {
+      BucketName: '${self:custom.tweetMediaBucket}',
+      CorsConfiguration: {
+        CorsRules: [
+          {
+            AllowedHeaders: ['*'],
+            AllowedMethods: ['GET', 'HEAD', 'PUT'],
+            AllowedOrigins: ['*'],
+            ExposedHeaders: ['ETag'],
+            MaxAge: 3000,
+          },
+        ],
+      },
+      LifecycleConfiguration: {
+        Rules: [
+          {
+            Id: 'delete-temporary-tweet-media',
+            Status: 'Enabled',
+            ExpirationInDays: '${self:custom.tweetMediaTtlDays}',
+            AbortIncompleteMultipartUpload: {
+              DaysAfterInitiation: 1,
+            },
+          },
+        ],
+      },
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      },
+    },
+  },
 
   /* CloudFrontDistribution: {
     Type: 'AWS::CloudFront::Distribution',

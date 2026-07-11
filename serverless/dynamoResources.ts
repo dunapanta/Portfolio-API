@@ -202,6 +202,134 @@ const dynamoResources: AWS["resources"]["Resources"] = {
       BillingMode: "PAY_PER_REQUEST",
     },
   },
+  // Daily "registros" / context log. Each item is a note about what was built
+  // that day (game, tools used, etc.) and is the raw material for tweets.
+  // Auto-expires after tweetMediaTtlDays so the log stays small.
+  tweetActivityTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.tweetActivityTableName}",
+      AttributeDefinitions: [
+        {
+          AttributeName: "id",
+          AttributeType: "S",
+        },
+        {
+          AttributeName: "entity",
+          AttributeType: "S",
+        },
+        {
+          AttributeName: "createdAt",
+          AttributeType: "S",
+        },
+      ],
+      KeySchema: [
+        {
+          AttributeName: "id",
+          KeyType: "HASH",
+        },
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "GSI-activity-recent",
+          KeySchema: [
+            {
+              AttributeName: "entity",
+              KeyType: "HASH",
+            },
+            {
+              AttributeName: "createdAt",
+              KeyType: "RANGE",
+            },
+          ],
+          Projection: {
+            ProjectionType: "ALL",
+          },
+        },
+      ],
+      TimeToLiveSpecification: {
+        AttributeName: "expiresAt",
+        Enabled: true,
+      },
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
+  // Scheduled + published tweets queue. The cron worker queries
+  // GSI-tweets-by-status (status = "scheduled", scheduledAt <= now) to find
+  // what is due. Expires after TTL so posted history self-cleans.
+  scheduledTweetsTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.scheduledTweetsTableName}",
+      AttributeDefinitions: [
+        {
+          AttributeName: "id",
+          AttributeType: "S",
+        },
+        {
+          AttributeName: "status",
+          AttributeType: "S",
+        },
+        {
+          AttributeName: "scheduledAt",
+          AttributeType: "N",
+        },
+        {
+          AttributeName: "entity",
+          AttributeType: "S",
+        },
+        {
+          AttributeName: "createdAt",
+          AttributeType: "S",
+        },
+      ],
+      KeySchema: [
+        {
+          AttributeName: "id",
+          KeyType: "HASH",
+        },
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "GSI-tweets-by-status",
+          KeySchema: [
+            {
+              AttributeName: "status",
+              KeyType: "HASH",
+            },
+            {
+              AttributeName: "scheduledAt",
+              KeyType: "RANGE",
+            },
+          ],
+          Projection: {
+            ProjectionType: "ALL",
+          },
+        },
+        {
+          IndexName: "GSI-tweets-recent",
+          KeySchema: [
+            {
+              AttributeName: "entity",
+              KeyType: "HASH",
+            },
+            {
+              AttributeName: "createdAt",
+              KeyType: "RANGE",
+            },
+          ],
+          Projection: {
+            ProjectionType: "ALL",
+          },
+        },
+      ],
+      TimeToLiveSpecification: {
+        AttributeName: "expiresAt",
+        Enabled: true,
+      },
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
 };
 
 export default dynamoResources;

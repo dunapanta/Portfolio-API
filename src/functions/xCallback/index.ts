@@ -7,11 +7,17 @@ import {
 } from "@libs/facebookOAuth";
 import { exchangeXCode, xConnectionId } from "@libs/xOAuth";
 
-const redirectToReelMaker = (status: "connected" | "error", message?: string) => {
-  const url = new URL(
-    process.env.SWIPE2PLAY_REEL_MAKER_URL ||
-      "https://www.dunapant.dev/10000-offline-games/reel-maker"
-  );
+const redirectAfterOAuth = (
+  status: "connected" | "error",
+  returnTo?: string,
+  message?: string
+) => {
+  const target =
+    returnTo === "tweet-studio"
+      ? process.env.TWEET_STUDIO_URL || "https://www.dunapant.dev/tweet-studio"
+      : process.env.SWIPE2PLAY_REEL_MAKER_URL ||
+        "https://www.dunapant.dev/10000-offline-games/reel-maker";
+  const url = new URL(target);
 
   url.searchParams.set("x", status);
   if (message) url.searchParams.set("message", message);
@@ -39,7 +45,9 @@ export const handler = async (event: APIGatewayProxyEvent) => {
   if (error) {
     return {
       statusCode: 302,
-      headers: { "Location": redirectToReelMaker("error", error) },
+      headers: {
+        "Location": redirectAfterOAuth("error", cookies.s2p_x_return_to, error),
+      },
       body: "",
     };
   }
@@ -89,19 +97,27 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       name: "s2p_x_code_verifier",
       value: "",
     });
+    const clearReturnToCookie = serializeCookie({
+      maxAge: 0,
+      name: "s2p_x_return_to",
+      value: "",
+    });
 
     return {
       statusCode: 302,
-      cookies: [clearStateCookie, clearVerifierCookie],
-      headers: { "Location": redirectToReelMaker("connected") },
+      cookies: [clearStateCookie, clearVerifierCookie, clearReturnToCookie],
+      headers: {
+        "Location": redirectAfterOAuth("connected", cookies.s2p_x_return_to),
+      },
       body: "",
     };
   } catch (callbackError) {
     return {
       statusCode: 302,
       headers: {
-        "Location": redirectToReelMaker(
+        "Location": redirectAfterOAuth(
           "error",
+          cookies.s2p_x_return_to,
           callbackError instanceof Error ? callbackError.message : "X OAuth failed."
         ),
       },

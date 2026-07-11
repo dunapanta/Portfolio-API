@@ -2,7 +2,13 @@ import * as crypto from "crypto";
 
 export const xConnectionId = "swipe2play-x";
 
-const xScopes = ["tweet.read", "tweet.write", "users.read", "offline.access"];
+const xScopes = [
+  "tweet.read",
+  "tweet.write",
+  "users.read",
+  "media.write",
+  "offline.access",
+];
 
 type XTokenResponse = {
   access_token?: string;

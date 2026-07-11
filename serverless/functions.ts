@@ -347,6 +347,152 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+
+  // ---------------------------------------------------------------------------
+  // Tweet Studio: schedule + auto-publish tweets from a daily context log.
+  // ---------------------------------------------------------------------------
+  tweetStudioStatus: {
+    handler: "src/functions/tweetStudioStatus/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/tweet-studio/status",
+        },
+      },
+    ],
+  },
+  listTweetActivity: {
+    handler: "src/functions/listTweetActivity/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/tweet-studio/activity",
+        },
+      },
+    ],
+  },
+  createTweetActivity: {
+    handler: "src/functions/createTweetActivity/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/tweet-studio/activity",
+        },
+      },
+    ],
+  },
+  deleteTweetActivity: {
+    handler: "src/functions/deleteTweetActivity/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "delete",
+          path: "/tweet-studio/activity/{activityId}",
+        },
+      },
+    ],
+  },
+  createTweetMediaUpload: {
+    handler: "src/functions/createTweetMediaUpload/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/tweet-studio/media",
+        },
+      },
+    ],
+  },
+  generateTweetDrafts: {
+    handler: "src/functions/generateTweetDrafts/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/tweet-studio/generate",
+        },
+      },
+    ],
+  },
+  listScheduledTweets: {
+    handler: "src/functions/listScheduledTweets/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/tweet-studio/tweets",
+        },
+      },
+    ],
+  },
+  createScheduledTweet: {
+    handler: "src/functions/createScheduledTweet/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/tweet-studio/tweets",
+        },
+      },
+    ],
+  },
+  updateScheduledTweet: {
+    handler: "src/functions/updateScheduledTweet/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "patch",
+          path: "/tweet-studio/tweets/{tweetId}",
+        },
+      },
+    ],
+  },
+  deleteScheduledTweet: {
+    handler: "src/functions/deleteScheduledTweet/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "delete",
+          path: "/tweet-studio/tweets/{tweetId}",
+        },
+      },
+    ],
+  },
+  publishScheduledTweet: {
+    handler: "src/functions/publishScheduledTweet/index.handler",
+    timeout: 120,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/tweet-studio/tweets/{tweetId}/publish",
+        },
+      },
+    ],
+  },
+  autoPublishDueTweets: {
+    handler: "src/functions/autoPublishDueTweets/index.handler",
+    timeout: 300,
+    events: [
+      {
+        schedule: "rate(10 minutes)",
+      },
+    ],
+  },
+  planDailyTweets: {
+    handler: "src/functions/planDailyTweets/index.handler",
+    timeout: 120,
+    events: [
+      {
+        // 11:00 UTC ~ early morning in America/Guayaquil: fill the day's queue.
+        schedule: "cron(0 11 * * ? *)",
+      },
+    ],
+  },
 };
 
 export default functions;
