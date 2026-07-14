@@ -505,6 +505,19 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  generateGameAsset: {
+    handler: "src/functions/generateGameAsset/index.handler",
+    timeout: 120,
+    memorySize: 1024,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/sprite-studio/asset",
+        },
+      },
+    ],
+  },
 };
 
 export default functions;

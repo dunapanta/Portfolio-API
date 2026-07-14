@@ -20,6 +20,11 @@ Available animation presets (use the id in "preset", fill "roles" with part name
 - cast: roles arm(req), body, effect
 - hurt: roles body(req)
 - death: roles body(req)
+- crouch: roles body(req), legFront, legBack
+- dodge: roles body(req)
+- land: roles body(req), legFront, legBack
+- defend: roles body(req), armFront, armBack, shield
+- celebrate: roles body(req), armFront, armBack
 - swim: roles body(req), tail(req), fins[]    (fins can be an array of part names)
 - fly: roles leftWing(req), rightWing(req), body
 - bite: roles jaw(req)
@@ -51,14 +56,15 @@ COORDINATE SYSTEM
 - Set "pivot" to the joint the part rotates around (e.g. a leg pivots at "top"=hip, an arm at "top"=shoulder, a lid at "bottom" hinge).
 
 RULES
-- 4 to 16 parts. First/root part is usually a "none" shape bone (hips/body/root) with no texture.
-- Give each part a unique lowercase name. Use conventional role names when relevant: hips, torso, head, armFront, armBack, legFront, legBack, tail, leftWing, rightWing, wheels/wheel, chassis, lid, glow, weapon, eye, fin, body.
+- 4 to 28 parts. First/root part is usually a "none" shape bone (hips/body/root) with no texture.
+- For humanoids prefer an articulated hierarchy: hips -> torso -> head; torso -> leftUpperArm -> leftForearm -> leftHand; torso -> rightUpperArm -> rightForearm -> rightHand -> weapon; hips -> leftUpperLeg -> leftLowerLeg -> leftFoot; hips -> rightUpperLeg -> rightLowerLeg -> rightFoot. Preset role names do not need to equal part names: map armFront/armBack to upper arms and legFront/legBack to upper legs.
+- Give each part a unique readable camelCase name. Use conventional role names when relevant: hips, torso, head, leftUpperArm, rightUpperArm, leftForearm, rightForearm, leftHand, rightHand, leftUpperLeg, rightUpperLeg, leftLowerLeg, rightLowerLeg, leftFoot, rightFoot, tail, leftWing, rightWing, wheels/wheel, chassis, lid, glow, weapon, eye, fin, body.
 - Choose shape from: ${SHAPES}
 - pivot from: ${PIVOTS}
 - Colors are #rrggbb hex. Pick a coherent palette from the description.
 - z is the draw order (higher = front).
-- Add a FULL set of the most common movements for this character type (aim for 5 to 8), so the user has a ready checklist. Map every REQUIRED role of each preset to a part name. Suggested sets:
-  - Humanoid / legged creature: idle, walk, run, jump, slash (or overhead), hurt, death (+ tailWag if it has a tail).
+- Always include every explicitly requested movement whose required roles can exist. Without an explicit list, add a useful set of 8 to 15 movements for the character type. Map every REQUIRED role of each preset to a part name. Suggested sets:
+  - Humanoid / legged creature: idle, walk, run, jump, crouch, dodge, land, slash, overhead, stab, cast, defend, hurt, celebrate, death (+ tailWag if it has a tail).
   - Fish / aquatic: swim, idle (use float on body), bite (use head/jaw), tailWag.
   - Flying creature: fly, idle, hurt, bite.
   - Vehicle: drive, turn, brake.
@@ -122,13 +128,28 @@ const parseSpec = (raw: string): CharacterSpec => {
 export const generateSpriteCharacter = async ({
   description,
   model,
+  referenceImage,
+  movements,
 }: {
   description: string;
   model?: string;
+  referenceImage?: string;
+  movements?: string[];
 }): Promise<{ spec: CharacterSpec; model: string }> => {
   const apiKey = await getOpenAiApiKey();
   const config = getOpenAiConfig();
   const selectedModel = model || process.env.SPRITE_STUDIO_MODEL || config.defaultModel;
+
+  const movementRequest = movements?.length
+    ? `\nCreate these requested animations when the rig has the required parts: ${movements.join(", ")}.`
+    : "";
+  const userText = `Design this character: ${description}${movementRequest}`;
+  const userContent = referenceImage
+    ? [
+        { type: "input_text", text: `${userText}\nUse the attached image as visual reference for silhouette, palette, equipment and proportions.` },
+        { type: "input_image", image_url: referenceImage, detail: "high" },
+      ]
+    : userText;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -139,10 +160,7 @@ export const generateSpriteCharacter = async ({
     body: JSON.stringify({
       input: [
         { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Design this character: ${description}`,
-        },
+        { role: "user", content: userContent },
       ],
       max_output_tokens: 2500,
       model: selectedModel,
