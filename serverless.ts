@@ -124,6 +124,8 @@ const serverlessConfiguration: AWS = {
       ELEVENLABS_DEFAULT_VOICE_ID: "${env:ELEVENLABS_DEFAULT_VOICE_ID, '21m00Tcm4TlvDq8ikWAM'}",
       OPENAI_API_KEY_PARAM: "${self:custom.openAiApiKeyParameterName}",
       OPENAI_DEFAULT_MODEL: "${env:OPENAI_DEFAULT_MODEL, 'gpt-5.4-mini'}",
+      SPRITE_STUDIO_KEY: "${env:SPRITE_STUDIO_KEY, 'daniel'}",
+      SPRITE_STUDIO_MODEL: "${env:SPRITE_STUDIO_MODEL, 'gpt-5.4-mini'}",
       REMOTION_AWS_REGION: "${env:REMOTION_AWS_REGION, 'us-east-1'}",
       REMOTION_FRAMES_PER_LAMBDA: "${env:REMOTION_FRAMES_PER_LAMBDA, '30'}",
       REMOTION_LAMBDA_FUNCTION_NAME: "${env:REMOTION_LAMBDA_FUNCTION_NAME, self:custom.remotionLambdaFunctionName}",

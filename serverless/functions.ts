@@ -493,6 +493,18 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  generateSpriteCharacter: {
+    handler: "src/functions/generateSpriteCharacter/index.handler",
+    timeout: 60,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/sprite-studio/character",
+        },
+      },
+    ],
+  },
 };
 
 export default functions;
