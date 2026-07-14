@@ -24,6 +24,7 @@ export type SpriteAssetJob = {
   model?: string;
   revisedPrompt?: string;
   resultKey?: string;
+  assetId?: string;
   error?: string;
 };
 
@@ -50,7 +51,7 @@ export const getSpriteAssetJob = async (id: string) => {
 
 export const updateSpriteAssetJob = async (
   id: string,
-  values: Partial<Pick<SpriteAssetJob, "status" | "model" | "revisedPrompt" | "resultKey" | "error">>
+  values: Partial<Pick<SpriteAssetJob, "status" | "model" | "revisedPrompt" | "resultKey" | "assetId" | "error">>
 ) => {
   const entries = Object.entries({ ...values, updatedAt: new Date().toISOString() }).filter(
     ([, value]) => value !== undefined
@@ -90,4 +91,3 @@ export const getSpriteAssetObject = async (key: string) => {
 
 export const createSpriteAssetDownloadUrl = (key: string) =>
   getSignedUrl(s3, new GetObjectCommand({ Bucket: bucketName(), Key: key }), { expiresIn: 15 * 60 });
-

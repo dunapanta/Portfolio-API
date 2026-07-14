@@ -534,6 +534,19 @@ const functions: AWS["functions"] = {
     timeout: 180,
     memorySize: 1024,
   },
+  spriteAssets: {
+    handler: "src/functions/spriteAssets/index.handler",
+    events: [
+      { httpApi: { method: "get", path: "/sprite-studio/assets" } },
+      { httpApi: { method: "post", path: "/sprite-studio/assets" } },
+    ],
+  },
+  getSpriteAsset: {
+    handler: "src/functions/getSpriteAsset/index.handler",
+    events: [
+      { httpApi: { method: "get", path: "/sprite-studio/assets/{assetId}" } },
+    ],
+  },
 };
 
 export default functions;

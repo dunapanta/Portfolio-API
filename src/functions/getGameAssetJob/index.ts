@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { formatJSONResponse } from "@libs/apiGateway";
 import { createSpriteAssetDownloadUrl, getSpriteAssetJob } from "@libs/spriteAssetJobs";
+import { createSpriteLibraryFileUrl } from "@libs/spriteAssets";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
@@ -14,10 +15,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     return formatJSONResponse({
       data: {
         jobId: job.id,
+        assetId: job.assetId,
         status: job.status,
         model: job.model,
         revisedPrompt: job.revisedPrompt,
-        imageUrl: job.resultKey ? await createSpriteAssetDownloadUrl(job.resultKey) : undefined,
+        imageUrl: job.resultKey
+          ? await (job.assetId
+            ? createSpriteLibraryFileUrl(job.resultKey)
+            : createSpriteAssetDownloadUrl(job.resultKey))
+          : undefined,
         message: job.error,
       },
     });
@@ -28,4 +34,3 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     });
   }
 };
-

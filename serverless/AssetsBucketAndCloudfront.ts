@@ -87,6 +87,29 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
       },
     },
   },
+  SpriteAssetsS3Bucket: {
+    Type: 'AWS::S3::Bucket',
+    Properties: {
+      BucketName: '${self:custom.spriteAssetsBucket}',
+      CorsConfiguration: {
+        CorsRules: [
+          {
+            AllowedHeaders: ['*'],
+            AllowedMethods: ['GET', 'HEAD'],
+            AllowedOrigins: ['*'],
+            ExposedHeaders: ['ETag'],
+            MaxAge: 3000,
+          },
+        ],
+      },
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      },
+    },
+  },
   // Tweet Studio media (screenshots / short clips). Private bucket, browser
   // uploads via presigned PUT, auto-deletes after tweetMediaTtlDays so we keep
   // storage cheap. The publisher reads the object back to push it to X.

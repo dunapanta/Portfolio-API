@@ -125,6 +125,29 @@ const dynamoResources: AWS["resources"]["Resources"] = {
       TimeToLiveSpecification: { AttributeName: "expiresAt", Enabled: true },
     },
   },
+  spriteAssetsTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.spriteAssetsTableName}",
+      AttributeDefinitions: [
+        { AttributeName: "id", AttributeType: "S" },
+        { AttributeName: "ownerId", AttributeType: "S" },
+        { AttributeName: "createdAt", AttributeType: "S" },
+      ],
+      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "GSI-sprite-assets-by-owner",
+          KeySchema: [
+            { AttributeName: "ownerId", KeyType: "HASH" },
+            { AttributeName: "createdAt", KeyType: "RANGE" },
+          ],
+          Projection: { ProjectionType: "ALL" },
+        },
+      ],
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
   gameContextsTable: {
     Type: "AWS::DynamoDB::Table",
     Properties: {

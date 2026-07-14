@@ -7,6 +7,7 @@ import {
   putSpriteAssetObject,
   updateSpriteAssetJob,
 } from "@libs/spriteAssetJobs";
+import { spriteAssetOwnerId } from "@libs/spriteAssets";
 
 const lambda = new LambdaClient({});
 
@@ -52,6 +53,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       model: String(body.model || "gpt-image-2"),
       movements: Array.isArray(body.movements) ? body.movements.map(String).slice(0, 20) : [],
       referenceKey,
+      ownerId: spriteAssetOwnerId(accessKey),
     };
     const now = new Date().toISOString();
     await createSpriteAssetJob({
