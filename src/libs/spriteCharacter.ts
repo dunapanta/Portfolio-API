@@ -57,7 +57,14 @@ RULES
 - pivot from: ${PIVOTS}
 - Colors are #rrggbb hex. Pick a coherent palette from the description.
 - z is the draw order (higher = front).
-- Add 2 to 4 animations that FIT the character (e.g. a humanoid: idle, walk, slash; a fish: swim; a vehicle: drive; a chest: open). Map every REQUIRED role of each preset to a part name.
+- Add a FULL set of the most common movements for this character type (aim for 5 to 8), so the user has a ready checklist. Map every REQUIRED role of each preset to a part name. Suggested sets:
+  - Humanoid / legged creature: idle, walk, run, jump, slash (or overhead), hurt, death (+ tailWag if it has a tail).
+  - Fish / aquatic: swim, idle (use float on body), bite (use head/jaw), tailWag.
+  - Flying creature: fly, idle, hurt, bite.
+  - Vehicle: drive, turn, brake.
+  - Object / chest / prop: open, close, idle (float), pulse.
+  - UI element: uiAppear, uiDisappear, uiScalePop, uiLoading.
+  Only include animations whose required roles exist on the character.
 ${PRESET_REFERENCE}
 
 Return STRICT JSON only, no markdown, shaped exactly as:
