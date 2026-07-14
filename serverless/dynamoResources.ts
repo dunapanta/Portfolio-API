@@ -115,6 +115,16 @@ const dynamoResources: AWS["resources"]["Resources"] = {
       BillingMode: "PAY_PER_REQUEST",
     },
   },
+  spriteAssetJobsTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.spriteAssetJobsTableName}",
+      AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
+      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+      BillingMode: "PAY_PER_REQUEST",
+      TimeToLiveSpecification: { AttributeName: "expiresAt", Enabled: true },
+    },
+  },
   gameContextsTable: {
     Type: "AWS::DynamoDB::Table",
     Properties: {

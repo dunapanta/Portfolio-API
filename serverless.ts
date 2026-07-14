@@ -20,6 +20,7 @@ const serverlessConfiguration: AWS = {
         Resource: [
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.portfolioTableName}",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.spriteAssetJobsTableName}",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-template",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.reelJobsTableName}/index/GSI-reel-jobs-by-status",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.gameContextsTableName}",
@@ -63,8 +64,10 @@ const serverlessConfiguration: AWS = {
       {
         Effect: "Allow",
         Action: ["lambda:InvokeFunction"],
-        Resource:
+        Resource: [
           "arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:${self:custom.remotionLambdaFunctionName}",
+          "arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:${self:service}-${sls:stage}-generateGameAssetWorker",
+        ],
       },
     ],
     apiGateway: {
@@ -91,6 +94,7 @@ const serverlessConfiguration: AWS = {
       portfolioTable: "${self:custom.portfolioTableName}",
       imageUploadBucket: "${self:custom.imageUploadBucket}",
       reelJobsTable: "${self:custom.reelJobsTableName}",
+      spriteAssetJobsTable: "${self:custom.spriteAssetJobsTableName}",
       reelAssetsBucket: "${self:custom.reelAssetsBucket}",
       gameMediaAssetsTable: "${self:custom.gameMediaAssetsTableName}",
       gameMediaBucket: "${self:custom.gameMediaBucket}",
@@ -126,6 +130,7 @@ const serverlessConfiguration: AWS = {
       OPENAI_DEFAULT_MODEL: "${env:OPENAI_DEFAULT_MODEL, 'gpt-5.4-mini'}",
       SPRITE_STUDIO_KEY: "${env:SPRITE_STUDIO_KEY, 'daniel'}",
       SPRITE_STUDIO_MODEL: "${env:SPRITE_STUDIO_MODEL, 'gpt-5.4-mini'}",
+      SPRITE_ASSET_WORKER_FUNCTION_NAME: "${self:service}-${sls:stage}-generateGameAssetWorker",
       REMOTION_AWS_REGION: "${env:REMOTION_AWS_REGION, 'us-east-1'}",
       REMOTION_FRAMES_PER_LAMBDA: "${env:REMOTION_FRAMES_PER_LAMBDA, '30'}",
       REMOTION_LAMBDA_FUNCTION_NAME: "${env:REMOTION_LAMBDA_FUNCTION_NAME, self:custom.remotionLambdaFunctionName}",
@@ -148,6 +153,7 @@ const serverlessConfiguration: AWS = {
     portfolioTableName: "${sls:stage}-portfolio-table",
     imageUploadBucket: "${sls:stage}-image-upload-bucket-du-portfolio",
     reelJobsTableName: "${sls:stage}-swipe2play-reel-jobs",
+    spriteAssetJobsTableName: "${sls:stage}-sprite-asset-jobs",
     reelAssetsBucket: "${sls:stage}-swipe2play-reel-assets-du-portfolio",
     gameMediaAssetsTableName: "${sls:stage}-swipe2play-game-media-assets",
     gameMediaBucket: "${sls:stage}-swipe2play-game-media-du-portfolio",

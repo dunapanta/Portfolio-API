@@ -507,7 +507,7 @@ const functions: AWS["functions"] = {
   },
   generateGameAsset: {
     handler: "src/functions/generateGameAsset/index.handler",
-    timeout: 120,
+    timeout: 20,
     memorySize: 1024,
     events: [
       {
@@ -517,6 +517,22 @@ const functions: AWS["functions"] = {
         },
       },
     ],
+  },
+  getGameAssetJob: {
+    handler: "src/functions/getGameAssetJob/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "get",
+          path: "/sprite-studio/asset/{jobId}",
+        },
+      },
+    ],
+  },
+  generateGameAssetWorker: {
+    handler: "src/functions/generateGameAssetWorker/index.handler",
+    timeout: 180,
+    memorySize: 1024,
   },
 };
 
