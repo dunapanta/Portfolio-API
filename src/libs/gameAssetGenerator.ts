@@ -43,7 +43,7 @@ function buildPrompt(input: {
   const subject = assetDirections[input.assetType] || assetDirections.prop;
   const style = styleDirections[input.style] || styleDirections.cartoon;
   const poseInstruction = input.workflow === "keyposes"
-    ? `Create a horizontal three-pose key-pose sheet for ${input.movements[0] || "attack"}: anticipation, impact, recovery. Keep identity, proportions, clothing, weapon and palette identical across all three poses. Equal cells, no overlap.`
+    ? `Create a horizontal three-pose key-pose sheet for ${input.movements[0] || "attack"}: anticipation, impact, recovery. Use three equal vertical cells with one complete character in each cell and no overlap.`
     : "Centered orthographic game-asset presentation. Keep generous empty margin around the asset.";
   return [
     "Create production-ready art for a 2D game asset pipeline.",
@@ -51,7 +51,8 @@ function buildPrompt(input: {
     `STYLE: ${style}.`,
     `LAYOUT: ${poseInstruction}`,
     "BACKGROUND: plain flat light-gray background with no shadow, scenery, border, labels or text; easy to remove locally.",
-    "CONSTRAINTS: no watermark, no logo, no caption, no cropped parts, no duplicated limbs unless the requested key poses require separate full characters.",
+    "CONSISTENCY: the character is one canonical design. Keep the exact same head and face geometry, eye shape, body proportions, clothing, accessories, weapon design, colors, outline weight, materials and rendering style in every pose.",
+    "CONSTRAINTS: no redesign, no alternate costume, no changed weapon, no watermark, no logo, no caption, no cropped parts, no duplicated limbs unless the requested key poses require separate full characters.",
   ].join("\n");
 }
 
@@ -66,20 +67,21 @@ export const generateGameAsset = async (input: {
 }): Promise<{ imageDataUrl: string; model: string; revisedPrompt?: string }> => {
   const apiKey = await getOpenAiApiKey();
   const requestedModel = ALLOWED_MODELS.has(input.model) ? input.model : "gpt-image-2";
-  const effectiveModel = input.referenceImage && requestedModel === "gpt-image-2"
-    ? "gpt-image-1.5"
-    : requestedModel;
+  const effectiveModel = requestedModel;
   const prompt = buildPrompt(input);
+  const size = input.workflow === "keyposes" ? "1536x1024" : "1024x1024";
+  const quality = input.referenceImage && input.assetType === "character" ? "high" : "medium";
 
   let response: Response;
   if (input.referenceImage) {
     const reference = parseReference(input.referenceImage);
     const form = new FormData();
     form.append("model", effectiveModel);
-    form.append("prompt", `${prompt}\nREFERENCE: Preserve the reference subject's identity, silhouette, palette and equipment.`);
-    form.append("image", new Blob([reference.bytes], { type: reference.mime }), `reference.${reference.extension}`);
-    form.append("size", "1024x1024");
-    form.append("quality", "medium");
+    form.append("prompt", `${prompt}
+REFERENCE IMAGE 1 IS CANONICAL: change only the pose required by the layout. Keep everything else the same. Copy its exact silhouette, head-to-body ratio, facial features, eye geometry, clothing folds, accessories, weapon shape and material, palette, outlines, texture and lighting into every pose. Do not reinterpret, simplify, beautify or redesign the character.`);
+    form.append("image[]", new Blob([reference.bytes], { type: reference.mime }), `reference.${reference.extension}`);
+    form.append("size", size);
+    form.append("quality", quality);
     form.append("output_format", "webp");
     form.append("output_compression", "82");
     response = await fetch("https://api.openai.com/v1/images/edits", {
@@ -95,8 +97,8 @@ export const generateGameAsset = async (input: {
         model: effectiveModel,
         prompt,
         n: 1,
-        size: "1024x1024",
-        quality: "medium",
+        size,
+        quality,
         output_format: "webp",
         output_compression: 82,
       }),

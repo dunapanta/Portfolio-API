@@ -44,14 +44,17 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     if (!accessKey) {
       return formatJSONResponse({ statusCode: 401, data: { message: "Invalid access key." } });
     }
-    if (body.kind !== "rig" || !body.spec || typeof body.spec !== "object") {
+    const savedProject = body.project && typeof body.project === "object" ? body.project : null;
+    const savedSpec = body.spec && typeof body.spec === "object" ? body.spec : null;
+    const payload = savedProject || savedSpec;
+    if (body.kind !== "rig" || !payload) {
       return formatJSONResponse({
         statusCode: 400,
-        data: { message: "Only generated rig projects can be saved here." },
+        data: { message: "Only generated rig or image-motion projects can be saved here." },
       });
     }
-    const serialized = JSON.stringify(body.spec);
-    if (Buffer.byteLength(serialized) > 500_000) {
+    const serialized = JSON.stringify(payload);
+    if (Buffer.byteLength(serialized) > 6_000_000) {
       return formatJSONResponse({ statusCode: 400, data: { message: "Rig project is too large." } });
     }
     const id = createSpriteLibraryAssetId();
@@ -66,7 +69,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       assetType: "character",
       description: String(body.description || "Generated character").slice(0, 900),
       style: String(body.style || "cartoon").slice(0, 40),
-      workflow: "rigged",
+      workflow: savedProject ? "image-motion" : "rigged",
       model: String(body.model || "gpt-5.4-mini").slice(0, 80),
       movements: Array.isArray(body.movements) ? body.movements.map(String).slice(0, 20) : [],
       storageKey,
