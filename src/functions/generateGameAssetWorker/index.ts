@@ -15,6 +15,7 @@ type WorkerEvent = {
     assetType: string;
     style: string;
     workflow: string;
+    direction: string;
     model: string;
     movements: string[];
     referenceKey?: string;
@@ -54,6 +55,7 @@ export const handler = async ({ jobId, input }: WorkerEvent) => {
       description: input.description,
       style: input.style,
       workflow: input.workflow,
+      direction: input.direction,
       model: result.model,
       movements: input.movements,
       storageKey: resultKey,

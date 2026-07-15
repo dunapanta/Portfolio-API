@@ -21,6 +21,8 @@ export type SpriteAssetJob = {
   updatedAt: string;
   expiresAt: number;
   assetType: string;
+  workflow?: string;
+  direction?: string;
   model?: string;
   revisedPrompt?: string;
   resultKey?: string;
@@ -51,7 +53,7 @@ export const getSpriteAssetJob = async (id: string) => {
 
 export const updateSpriteAssetJob = async (
   id: string,
-  values: Partial<Pick<SpriteAssetJob, "status" | "model" | "revisedPrompt" | "resultKey" | "assetId" | "error">>
+  values: Partial<Pick<SpriteAssetJob, "status" | "model" | "revisedPrompt" | "resultKey" | "assetId" | "error" | "workflow" | "direction">>
 ) => {
   const entries = Object.entries({ ...values, updatedAt: new Date().toISOString() }).filter(
     ([, value]) => value !== undefined

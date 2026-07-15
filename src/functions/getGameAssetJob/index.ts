@@ -2,11 +2,12 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { formatJSONResponse } from "@libs/apiGateway";
 import { createSpriteAssetDownloadUrl, getSpriteAssetJob } from "@libs/spriteAssetJobs";
 import { createSpriteLibraryFileUrl } from "@libs/spriteAssets";
+import { validateSpriteStudioAccessKey } from "@libs/spriteStudioAuth";
+import { RIG_PART_LAYOUT } from "@libs/gameAssetGenerator";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
-    const accessKey = process.env.SPRITE_STUDIO_KEY || "daniel";
-    if (String(event.queryStringParameters?.key || "") !== accessKey) {
+    if (!validateSpriteStudioAccessKey(event.queryStringParameters?.key)) {
       return formatJSONResponse({ statusCode: 401, data: { message: "Invalid access key." } });
     }
     const jobId = String(event.pathParameters?.jobId || "");
@@ -19,6 +20,9 @@ export const handler = async (event: APIGatewayProxyEvent) => {
         status: job.status,
         model: job.model,
         revisedPrompt: job.revisedPrompt,
+        workflow: job.workflow,
+        direction: job.direction,
+        rigLayout: job.workflow === "parts" ? RIG_PART_LAYOUT : undefined,
         imageUrl: job.resultKey
           ? await (job.assetId
             ? createSpriteLibraryFileUrl(job.resultKey)

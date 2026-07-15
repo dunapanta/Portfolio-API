@@ -24,6 +24,7 @@ export type SpriteLibraryAsset = {
   workflow: string;
   model: string;
   movements: string[];
+  direction?: string;
   storageKey: string;
   contentType: string;
   createdAt: string;
@@ -84,4 +85,3 @@ export const putSpriteLibraryObject = async ({
 
 export const createSpriteLibraryFileUrl = (key: string) =>
   getSignedUrl(s3, new GetObjectCommand({ Bucket: bucketName(), Key: key }), { expiresIn: 15 * 60 });
-

@@ -5,11 +5,12 @@ import {
   getSpriteLibraryAsset,
   spriteAssetOwnerId,
 } from "@libs/spriteAssets";
+import { validateSpriteStudioAccessKey } from "@libs/spriteStudioAuth";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
-    const accessKey = process.env.SPRITE_STUDIO_KEY || "daniel";
-    if (String(event.queryStringParameters?.key || "") !== accessKey) {
+    const accessKey = validateSpriteStudioAccessKey(event.queryStringParameters?.key);
+    if (!accessKey) {
       return formatJSONResponse({ statusCode: 401, data: { message: "Invalid access key." } });
     }
     const asset = await getSpriteLibraryAsset(String(event.pathParameters?.assetId || ""));
@@ -29,4 +30,3 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     });
   }
 };
-

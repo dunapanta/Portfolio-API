@@ -8,14 +8,15 @@ import {
   updateSpriteAssetJob,
 } from "@libs/spriteAssetJobs";
 import { spriteAssetOwnerId } from "@libs/spriteAssets";
+import { validateSpriteStudioAccessKey } from "@libs/spriteStudioAuth";
 
 const lambda = new LambdaClient({});
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
     const body = event.body ? JSON.parse(event.body) : {};
-    const accessKey = process.env.SPRITE_STUDIO_KEY || "daniel";
-    if (String(body.key || "") !== accessKey) {
+    const accessKey = validateSpriteStudioAccessKey(body.key);
+    if (!accessKey) {
       return formatJSONResponse({ statusCode: 401, data: { message: "Invalid access key." } });
     }
     const description = String(body.description || "").trim();
@@ -45,11 +46,18 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
+    const direction = ["front", "right", "left"].includes(String(body.direction))
+      ? String(body.direction)
+      : "front";
+    const workflow = ["single", "keyposes", "parts"].includes(String(body.workflow))
+      ? String(body.workflow)
+      : "single";
     const input = {
       description,
       assetType: String(body.assetType || "character"),
       style: String(body.style || "cartoon"),
-      workflow: String(body.workflow || "single"),
+      workflow,
+      direction,
       model: String(body.model || "gpt-image-2"),
       movements: Array.isArray(body.movements) ? body.movements.map(String).slice(0, 20) : [],
       referenceKey,
@@ -60,6 +68,8 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       id: jobId,
       status: "queued",
       assetType: input.assetType,
+      workflow: input.workflow,
+      direction: input.direction,
       createdAt: now,
       updatedAt: now,
       expiresAt: Math.floor(Date.now() / 1000) + 24 * 60 * 60,

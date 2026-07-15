@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { formatJSONResponse } from "@libs/apiGateway";
 import { generateSpriteCharacter } from "@libs/spriteCharacter";
+import { validateSpriteStudioAccessKey } from "@libs/spriteStudioAuth";
 
 /**
  * POST /sprite-studio/character
@@ -14,8 +15,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
   try {
     const body = event.body ? JSON.parse(event.body) : {};
 
-    const accessKey = process.env.SPRITE_STUDIO_KEY || "daniel";
-    if (String(body.key || "") !== accessKey) {
+    if (!validateSpriteStudioAccessKey(body.key)) {
       return formatJSONResponse({
         statusCode: 401,
         data: { message: "Invalid access key." },

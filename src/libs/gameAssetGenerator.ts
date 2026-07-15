@@ -2,6 +2,16 @@ import { getOpenAiApiKey } from "@libs/openAi";
 
 const ALLOWED_MODELS = new Set(["gpt-image-2", "gpt-image-1.5", "gpt-image-1-mini"]);
 
+export const RIG_PART_LAYOUT = {
+  columns: 4,
+  rows: 3,
+  parts: [
+    "head", "torso", "hips", "weapon",
+    "leftUpperArm", "leftForearmHand", "rightUpperArm", "rightForearmHand",
+    "leftUpperLeg", "leftLowerLegFoot", "rightUpperLeg", "rightLowerLegFoot",
+  ],
+};
+
 const assetDirections: Record<string, string> = {
   character: "a complete 2D game character, full body visible including feet, neutral readable silhouette",
   prop: "one isolated 2D game prop or interactable object",
@@ -39,12 +49,20 @@ function buildPrompt(input: {
   style: string;
   workflow: string;
   movements: string[];
+  direction?: string;
 }): string {
   const subject = assetDirections[input.assetType] || assetDirections.prop;
   const style = styleDirections[input.style] || styleDirections.cartoon;
+  const direction = input.direction === "left"
+    ? "strict left-facing side profile"
+    : input.direction === "right"
+      ? "strict right-facing side profile"
+      : "straight front view";
   const poseInstruction = input.workflow === "keyposes"
     ? `Create a horizontal three-pose key-pose sheet for ${input.movements[0] || "attack"}: anticipation, impact, recovery. Use three equal vertical cells with one complete character in each cell and no overlap.`
-    : "Centered orthographic game-asset presentation. Keep generous empty margin around the asset.";
+    : input.workflow === "parts"
+      ? `Create a body-part atlas, ${direction}, in an exact invisible 4-column by 3-row grid. Put exactly one isolated component in each cell, centered with generous space and never crossing a cell boundary. Cell order left-to-right: ROW 1 head | torso | hips/pelvis | weapon; ROW 2 character-left upper arm | character-left forearm plus hand | character-right upper arm | character-right forearm plus hand; ROW 3 character-left upper leg | character-left lower leg plus foot | character-right upper leg | character-right lower leg plus foot. Show only separated components, not an assembled or full character. Do not draw grid lines, labels, numbers or text.`
+      : `Centered orthographic game-asset presentation in ${direction}. Keep generous empty margin around the asset.`;
   return [
     "Create production-ready art for a 2D game asset pipeline.",
     `SUBJECT: ${subject}. ${input.description}`,
@@ -52,7 +70,9 @@ function buildPrompt(input: {
     `LAYOUT: ${poseInstruction}`,
     "BACKGROUND: plain flat light-gray background with no shadow, scenery, border, labels or text; easy to remove locally.",
     "CONSISTENCY: the character is one canonical design. Keep the exact same head and face geometry, eye shape, body proportions, clothing, accessories, weapon design, colors, outline weight, materials and rendering style in every pose.",
-    "CONSTRAINTS: no redesign, no alternate costume, no changed weapon, no watermark, no logo, no caption, no cropped parts, no duplicated limbs unless the requested key poses require separate full characters.",
+    input.workflow === "parts"
+      ? "PARTS CONSTRAINTS: preserve the visible clothing, armor and skin on every separated limb. Clean attachment edges at shoulders, elbows, hips and knees. Every component must be complete, isolated and readable."
+      : "CONSTRAINTS: no redesign, no alternate costume, no changed weapon, no watermark, no logo, no caption, no cropped parts, no duplicated limbs unless the requested key poses require separate full characters.",
   ].join("\n");
 }
 
@@ -64,12 +84,13 @@ export const generateGameAsset = async (input: {
   model: string;
   movements: string[];
   referenceImage?: string;
+  direction?: string;
 }): Promise<{ imageDataUrl: string; model: string; revisedPrompt?: string }> => {
   const apiKey = await getOpenAiApiKey();
   const requestedModel = ALLOWED_MODELS.has(input.model) ? input.model : "gpt-image-2";
   const effectiveModel = requestedModel;
   const prompt = buildPrompt(input);
-  const size = input.workflow === "keyposes" ? "1536x1024" : "1024x1024";
+  const size = input.workflow === "keyposes" || input.workflow === "parts" ? "1536x1024" : "1024x1024";
   const quality = input.referenceImage && input.assetType === "character" ? "high" : "medium";
 
   let response: Response;
@@ -78,7 +99,7 @@ export const generateGameAsset = async (input: {
     const form = new FormData();
     form.append("model", effectiveModel);
     form.append("prompt", `${prompt}
-REFERENCE IMAGE 1 IS CANONICAL: change only the pose required by the layout. Keep everything else the same. Copy its exact silhouette, head-to-body ratio, facial features, eye geometry, clothing folds, accessories, weapon shape and material, palette, outlines, texture and lighting into every pose. Do not reinterpret, simplify, beautify or redesign the character.`);
+REFERENCE IMAGE 1 IS CANONICAL: change only the viewpoint, pose or separation required by the layout. Keep everything else the same. Copy its exact silhouette, head-to-body ratio, facial features, eye geometry, clothing, accessories, weapon shape and material, palette, outlines, texture and lighting into every result. For hidden surfaces in a side view, infer the minimum necessary while matching the canonical design. Do not reinterpret, simplify, beautify or redesign the character.`);
     form.append("image[]", new Blob([reference.bytes], { type: reference.mime }), `reference.${reference.extension}`);
     form.append("size", size);
     form.append("quality", quality);

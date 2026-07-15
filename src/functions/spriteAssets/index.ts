@@ -8,17 +8,13 @@ import {
   putSpriteLibraryObject,
   spriteAssetOwnerId,
 } from "@libs/spriteAssets";
-
-const validAccessKey = (value: unknown) => {
-  const accessKey = process.env.SPRITE_STUDIO_KEY || "daniel";
-  return String(value || "") === accessKey ? accessKey : null;
-};
+import { validateSpriteStudioAccessKey } from "@libs/spriteStudioAuth";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   try {
     const method = event.httpMethod || (event as any).requestContext?.http?.method;
     if (method === "GET") {
-      const accessKey = validAccessKey(event.queryStringParameters?.key);
+      const accessKey = validateSpriteStudioAccessKey(event.queryStringParameters?.key);
       if (!accessKey) {
         return formatJSONResponse({ statusCode: 401, data: { message: "Invalid access key." } });
       }
@@ -40,7 +36,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     }
 
     const body = event.body ? JSON.parse(event.body) : {};
-    const accessKey = validAccessKey(body.key);
+    const accessKey = validateSpriteStudioAccessKey(body.key);
     if (!accessKey) {
       return formatJSONResponse({ statusCode: 401, data: { message: "Invalid access key." } });
     }
@@ -69,7 +65,8 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       assetType: "character",
       description: String(body.description || "Generated character").slice(0, 900),
       style: String(body.style || "cartoon").slice(0, 40),
-      workflow: savedProject ? "image-motion" : "rigged",
+      workflow: String(body.workflow || (savedProject ? "image-motion" : "rigged")).slice(0, 40),
+      direction: ["front", "right", "left"].includes(String(body.direction)) ? String(body.direction) : undefined,
       model: String(body.model || "gpt-5.4-mini").slice(0, 80),
       movements: Array.isArray(body.movements) ? body.movements.map(String).slice(0, 20) : [],
       storageKey,

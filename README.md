@@ -2,6 +2,8 @@
 
 > **Tweet Studio** (rutas `/tweet-studio/*`, crons de auto-publicación a X): ver [TWEET_STUDIO.md](./TWEET_STUDIO.md) — incluye referencia de API con ejemplos `curl` pensada para agentes de IA.
 
+> **Sprite Forge** (rutas `/sprite-studio/*`, GPT Image, atlas de partes, S3/DynamoDB): ver [SPRITE_FORGE_API.md](./SPRITE_FORGE_API.md) — contrato asíncrono, cuadrícula 4×3 y ejemplos para automatizaciones.
+
 ## Swipe2Play reels backend
 
 Base para guardar y publicar reels creados desde la web.

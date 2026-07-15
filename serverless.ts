@@ -134,7 +134,7 @@ const serverlessConfiguration: AWS = {
       ELEVENLABS_DEFAULT_VOICE_ID: "${env:ELEVENLABS_DEFAULT_VOICE_ID, '21m00Tcm4TlvDq8ikWAM'}",
       OPENAI_API_KEY_PARAM: "${self:custom.openAiApiKeyParameterName}",
       OPENAI_DEFAULT_MODEL: "${env:OPENAI_DEFAULT_MODEL, 'gpt-5.4-mini'}",
-      SPRITE_STUDIO_KEY: "${env:SPRITE_STUDIO_KEY, 'daniel'}",
+      SPRITE_STUDIO_KEY: "${env:SPRITE_STUDIO_KEY}",
       SPRITE_STUDIO_MODEL: "${env:SPRITE_STUDIO_MODEL, 'gpt-5.4-mini'}",
       SPRITE_ASSET_WORKER_FUNCTION_NAME: "${self:service}-${sls:stage}-generateGameAssetWorker",
       REMOTION_AWS_REGION: "${env:REMOTION_AWS_REGION, 'us-east-1'}",
