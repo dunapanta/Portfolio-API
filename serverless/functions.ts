@@ -145,6 +145,27 @@ const functions: AWS["functions"] = {
       },
     ],
   },
+  scheduleReelPublish: {
+    handler: "src/functions/scheduleReelPublish/index.handler",
+    timeout: 30,
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/swipe2play/reels/{reelId}/schedule",
+        },
+      },
+    ],
+  },
+  autoPublishDueReels: {
+    handler: "src/functions/autoPublishDueReels/index.handler",
+    timeout: 600,
+    events: [
+      {
+        schedule: "rate(10 minutes)",
+      },
+    ],
+  },
   listGameContexts: {
     handler: "src/functions/listGameContexts/index.handler",
     events: [

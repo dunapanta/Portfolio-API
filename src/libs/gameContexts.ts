@@ -254,4 +254,93 @@ export const defaultGameContexts: Swipe2PlayGameContext[] = [
     title: "Penalty Beasts",
     videoAssetPath: "src/assets/videos/penalty_beasts.mp4",
   },
+  {
+    color: "#16465A",
+    coreMechanics: [
+      "dodge fish on the way down",
+      "one touch hooks a fish and starts the reel",
+      "catch every fish on the way up",
+      "grab rare power bubbles",
+      "fill the 50-fish album",
+      "buy fisher cats with unique perks",
+    ],
+    gameId: "game_whisker_depths",
+    gameplaySummary:
+      "A cozy watercolor fishing game where a cat drops its hook into an endless lake: dodge fish while descending, and the moment one bites, reel back up catching everything in reach. Deeper zones get darker with rarer creatures, coins buy new fisher cats, and every species joins a collectible album.",
+    hookAngles: [
+      "How deep can this cozy cat actually go?",
+      "One touch and the reel-up begins - catch everything.",
+      "There are 50 fish down here and one of them is a Kraken.",
+      "The water gets dark at 330 meters. Bring a lantern.",
+    ],
+    isPublished: true,
+    keywords: ["fishing", "cozy", "cat", "depths", "collection", "album", "kraken", "watercolor"],
+    leaderboardMetric: "score (coins + depth bonus) / best depth",
+    name: "whisker_depths",
+    obstacles: [
+      "fish blocking the descent",
+      "darkness below 330m",
+      "fleeing fish that see you coming",
+      "ambush predators like the Mimic Stone and Kraken",
+      "faster, rarer patterns the deeper you go",
+    ],
+    playerGoal: "Dive as deep as possible, hook a fish, and collect the biggest haul on the way back up.",
+    reelPrompt:
+      "Show the cozy sunset lake, a fast dive dodging cute fish, the hook grabbing one, a frantic reel-up collecting a stack of fish, the dark deep zones with glowing creatures, and a NEW FISH album unlock.",
+    scoring: "Each fish pays coins by rarity (2 to 150), plus a depth bonus; coins persist and buy shop cats with perks.",
+    targetAudience: "cozy game and collection players",
+    theme: "cozy cat fishing",
+    title: "Whisker Depths",
+  },
+  {
+    color: "#141824",
+    coreMechanics: [
+      "aim and fire to move through recoil",
+      "control the weapon's rotation in mid-air",
+      "clear escalating enemy rooms",
+      "use ricochets, slow-motion near misses, and pickups",
+      "earn credits and unlock new weapons in the Armory",
+    ],
+    gameId: "game_trigger_storm",
+    gameplaySummary:
+      "A neon recoil survival shooter where the gun is both the weapon and the movement system. Every shot launches and spins the player through a side-view arena, so aiming controls both damage and momentum. Clear tougher rooms, survive enemy fire, collect color-coded crates, and build an eight-weapon Armory between runs.",
+    hookAngles: [
+      "This shooter makes every bullet your movement system.",
+      "Can you survive when firing is the only way to fly?",
+      "Every shot launches you closer to danger.",
+      "Aim, recoil, spin, survive: how long can this run last?",
+    ],
+    isPublished: true,
+    keywords: [
+      "shooter",
+      "recoil",
+      "physics",
+      "neon",
+      "survival",
+      "weapon",
+      "arena",
+      "ricochet",
+    ],
+    leaderboardMetric: "score / highest room cleared",
+    name: "trigger_storm",
+    notes:
+      "For reels, use the true side-view gameplay: show the muzzle flash, recoil lift, controlled rotation, a close enemy near miss, a crate pickup, and the room-clear payoff. Keep the neon cyan, violet, and amber contrast visible.",
+    obstacles: [
+      "enemy guns with increasingly aggressive fire patterns",
+      "shielded guardians that reflect frontal bullets",
+      "enemy contact and incoming projectiles",
+      "arena walls, ricochets, and tighter room pressure",
+      "weapon momentum that can send the player into danger",
+    ],
+    playerGoal:
+      "Use recoil to stay airborne, destroy every enemy, and reach the highest room possible.",
+    reelPrompt:
+      "Open with a neon weapon firing and immediately launching into the arena. Cut between controlled spins, bullets passing close to an enemy in slow motion, a ricochet or explosive hit, a bright crate pickup, and a final room-clear or score reveal. Emphasize that every shot is both movement and attack.",
+    scoring:
+      "Destroy enemies and clear rooms to raise the score; completed runs award persistent Storm Credits that unlock weapons in the Armory.",
+    targetAudience: "mobile arcade, physics-shooter, and high-score survival players",
+    theme: "neon recoil survival arena",
+    title: "Trigger Storm",
+    videoAssetPath: "src/assets/videos/trigger_storm.mp4",
+  },
 ];

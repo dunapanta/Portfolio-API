@@ -4,15 +4,18 @@ import functions from "./serverless/functions";
 import dynamoResources from "./serverless/dynamoResources";
 import AssetsBucketAndCloudfront from "./serverless/AssetsBucketAndCloudfront";
 
-const serverlessConfiguration: AWS = {
+const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
   service: "duportfolioapi",
-  frameworkVersion: "3",
+  frameworkVersion: "4",
   plugins: ["serverless-esbuild", "serverless-iam-roles-per-function"],
+  build: {
+    esbuild: false,
+  },
   provider: {
     name: "aws",
     runtime: "nodejs22.x" as never,
     region: "us-east-1",
-    profile: "serverlessUser",
+    profile: "default",
     iamRoleStatements: [
       {
         Effect: "Allow",
@@ -113,7 +116,7 @@ const serverlessConfiguration: AWS = {
       tweetMediaTtlDays: "${self:custom.tweetMediaTtlDays}",
       TWEET_STUDIO_TIMEZONE: "${env:TWEET_STUDIO_TIMEZONE, 'America/Guayaquil'}",
       TWEET_STUDIO_DAILY_TARGET: "${env:TWEET_STUDIO_DAILY_TARGET, '2'}",
-      TWEET_STUDIO_SLOTS: "${env:TWEET_STUDIO_SLOTS, '13:00,20:00'}",
+      TWEET_STUDIO_SLOTS: "${env:TWEET_STUDIO_SLOTS, self:custom.defaultTweetStudioSlots}",
       OPENAI_TWEET_MODEL: "${env:OPENAI_TWEET_MODEL, 'gpt-5.4-mini'}",
       META_APP_ID: "${env:META_APP_ID, ssm:${self:custom.metaAppIdParameterName}}",
       META_APP_SECRET: "${env:META_APP_SECRET, ssm:${self:custom.metaAppSecretParameterName}}",
@@ -143,6 +146,7 @@ const serverlessConfiguration: AWS = {
       REMOTION_SERVE_URL: "${env:REMOTION_SERVE_URL, self:custom.remotionServeUrl}",
       REMOTION_TEMPLATE_ONE_COMPOSITION: "${env:REMOTION_TEMPLATE_ONE_COMPOSITION, 'Swipe2PlayHookGameplayTemplate'}",
       REMOTION_TEMPLATE_TWO_COMPOSITION: "${env:REMOTION_TEMPLATE_TWO_COMPOSITION, 'Swipe2PlayChallengeCountdownTemplate'}",
+      REMOTION_TEMPLATE_THREE_COMPOSITION: "${env:REMOTION_TEMPLATE_THREE_COMPOSITION, 'Swipe2PlayCozyDiveTemplate'}",
     },
   },
   // import the function via paths
@@ -156,6 +160,7 @@ const serverlessConfiguration: AWS = {
   },
   package: { individually: true },
   custom: {
+    defaultTweetStudioSlots: "13:00,20:00",
     portfolioTableName: "${sls:stage}-portfolio-table",
     imageUploadBucket: "${sls:stage}-image-upload-bucket-du-portfolio",
     reelJobsTableName: "${sls:stage}-swipe2play-reel-jobs",

@@ -40,6 +40,9 @@ export const getRemotionLambdaConfig = () => ({
   templateTwoComposition:
     process.env.REMOTION_TEMPLATE_TWO_COMPOSITION ||
     "Swipe2PlayChallengeCountdownTemplate",
+  templateThreeComposition:
+    process.env.REMOTION_TEMPLATE_THREE_COMPOSITION ||
+    "Swipe2PlayCozyDiveTemplate",
   framesPerLambda: Number(
     process.env.REMOTION_FRAMES_PER_LAMBDA || defaultFramesPerLambda
   ),

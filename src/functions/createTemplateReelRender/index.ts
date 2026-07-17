@@ -3,6 +3,7 @@ import { formatJSONResponse } from "@libs/apiGateway";
 import { dynamo } from "@libs/dynamo";
 import { generateElevenLabsSpeech, getElevenLabsConfig } from "@libs/elevenLabs";
 import { generateGameReelPhraseText } from "@libs/gameReelPhrase";
+import { CozyReelScript, generateCozyReelScript } from "@libs/reelScript";
 import { getGameContextsTableName } from "@libs/gameContexts";
 import {
   createGameMediaDownloadUrl,
@@ -25,6 +26,7 @@ import {
 
 const templateOneId = "swipe2play-hook-gameplay-v1";
 const templateTwoId = "swipe2play-challenge-countdown-v1";
+const templateThreeId = "swipe2play-cozy-dive-v1";
 const fps = 30;
 const defaultVoiceId = "FF7KdobWPaiR0vkcALHF";
 
@@ -43,6 +45,12 @@ const templates: Record<
     label: "Template 2",
     requiresHook: false,
     getComposition: () => getRemotionLambdaConfig().templateTwoComposition,
+  },
+  // Cozy Dive: hook (app swipe demo) + two gameplay clips + script + music.
+  [templateThreeId]: {
+    label: "Template 3",
+    requiresHook: true,
+    getComposition: () => getRemotionLambdaConfig().templateThreeComposition,
   },
 };
 
@@ -73,6 +81,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     const {
       gameId,
       gameplayAssetId,
+      gameplayBAssetId,
       hookAssetId,
       model,
       phrase: rawPhrase,
@@ -102,12 +111,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
-    const [game, hookAsset, gameplayAsset] = await Promise.all([
+    const [game, hookAsset, gameplayAsset, gameplayBAsset] = await Promise.all([
       dynamo.get(gameId, getGameContextsTableName()),
       template.requiresHook && hookAssetId
         ? getGameMediaAsset(hookAssetId)
         : Promise.resolve(undefined),
       getGameMediaAsset(gameplayAssetId),
+      templateId === templateThreeId && gameplayBAssetId
+        ? getGameMediaAsset(gameplayBAssetId)
+        : Promise.resolve(undefined),
     ]);
 
     if (!game) {
@@ -138,18 +150,49 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       });
     }
 
+    if (
+      templateId === templateThreeId &&
+      gameplayBAsset &&
+      (gameplayBAsset.gameId !== gameId || gameplayBAsset.mediaKind !== "gameplay")
+    ) {
+      return formatJSONResponse({
+        statusCode: 404,
+        data: { message: "Second gameplay video not found for this game." },
+      });
+    }
+
     reelId = createReelId();
     const expiresAt = getReelExpiry();
-    const phrase = String(rawPhrase || "").trim()
-      ? String(rawPhrase).trim()
-      : (
-          await generateGameReelPhraseText({
-            game,
-            model,
-            tone: "short mobile game challenge",
-          })
-        ).phrase;
-    const voiceText = appendSwipe2Play(phrase);
+
+    let cozyScript: CozyReelScript | undefined;
+    let phrase: string;
+    let voiceText: string;
+    if (templateId === templateThreeId) {
+      cozyScript = (
+        await generateCozyReelScript({
+          angleA: body.clipAContext,
+          angleB: body.clipBContext,
+          game,
+          model,
+        })
+      ).script;
+      if (String(rawPhrase || "").trim()) {
+        cozyScript.voiceText = String(rawPhrase).trim();
+      }
+      phrase = cozyScript.voiceText;
+      voiceText = cozyScript.voiceText;
+    } else {
+      phrase = String(rawPhrase || "").trim()
+        ? String(rawPhrase).trim()
+        : (
+            await generateGameReelPhraseText({
+              game,
+              model,
+              tone: "short mobile game challenge",
+            })
+          ).phrase;
+      voiceText = appendSwipe2Play(phrase);
+    }
 
     const elevenLabsConfig = getElevenLabsConfig();
     const voiceId = body.voiceId || defaultVoiceId;
@@ -174,24 +217,57 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       key: voiceoverKey,
     });
 
-    const [hookVideoSrc, gameplayVideoSrc, voiceoverAudioSrc] = await Promise.all([
-      hookAsset ? createGameMediaDownloadUrl(hookAsset.key) : Promise.resolve(""),
-      createGameMediaDownloadUrl(gameplayAsset.key),
-      createDownloadUrl(voiceoverKey),
-    ]);
+    const effectiveBAsset =
+      templateId === templateThreeId ? gameplayBAsset || gameplayAsset : undefined;
+    const [hookVideoSrc, gameplayVideoSrc, gameplayBVideoSrc, voiceoverAudioSrc] =
+      await Promise.all([
+        hookAsset ? createGameMediaDownloadUrl(hookAsset.key) : Promise.resolve(""),
+        createGameMediaDownloadUrl(gameplayAsset.key),
+        effectiveBAsset
+          ? createGameMediaDownloadUrl(effectiveBAsset.key)
+          : Promise.resolve(""),
+        createDownloadUrl(voiceoverKey),
+      ]);
 
     const hookFrames = hookAsset
       ? secondsToFrames(hookAsset.durationSeconds, 3)
       : 0;
     const gameplayFrames = secondsToFrames(gameplayAsset.durationSeconds, 8);
-    const templateSlug = templateId === templateTwoId ? "template-2" : "template-1";
+    const templateSlug =
+      templateId === templateTwoId
+        ? "template-2"
+        : templateId === templateThreeId
+        ? "template-3"
+        : "template-1";
     const outputFileName = `swipe2play-${game.name || game.gameId}-${templateSlug}-${Date.now()}.mp4`;
     const outputKey = `swipe2play/reels/${reelId}/rendered/${outputFileName}`;
     const outputBucket = getReelAssetsBucketName();
 
     const gameTitle = game.title || game.name || "Swipe2Play";
+    const gameplayBFrames = effectiveBAsset
+      ? secondsToFrames(effectiveBAsset.durationSeconds, 5)
+      : 0;
     const inputProps: Record<string, unknown> =
-      templateId === templateTwoId
+      templateId === templateThreeId
+        ? {
+            accentColor: String(game.color || "#16465A"),
+            appUrl: "swipe2play.app",
+            captionA: cozyScript?.captionA || "",
+            captionB: cozyScript?.captionB || "",
+            captionHook: cozyScript?.captionHook || "",
+            ctaLine: cozyScript?.ctaLine || "play it free",
+            fps,
+            gameTitle,
+            gameplayADurationInFrames: gameplayFrames,
+            gameplayAVideoSrc: gameplayVideoSrc,
+            gameplayBDurationInFrames: gameplayBFrames,
+            gameplayBVideoSrc,
+            hookDurationInFrames: hookFrames,
+            hookVideoSrc,
+            musicAudioSrc: "",
+            voiceoverAudioSrc,
+          }
+        : templateId === templateTwoId
         ? {
             appUrl: "swipe2play.app",
             challengeText: phrase,
@@ -225,7 +301,11 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     });
 
     const durationFrames =
-      templateId === templateTwoId ? gameplayFrames : hookFrames + gameplayFrames;
+      templateId === templateTwoId
+        ? gameplayFrames
+        : templateId === templateThreeId
+        ? hookFrames + gameplayFrames + gameplayBFrames
+        : hookFrames + gameplayFrames;
     const segments = [
       ...(hookAsset
         ? [
@@ -241,6 +321,15 @@ export const handler = async (event: APIGatewayProxyEvent) => {
         durationSeconds: gameplayAsset.durationSeconds,
         kind: "gameplay",
       },
+      ...(effectiveBAsset && effectiveBAsset.id !== gameplayAsset.id
+        ? [
+            {
+              assetId: effectiveBAsset.id,
+              durationSeconds: effectiveBAsset.durationSeconds,
+              kind: "gameplay-b",
+            },
+          ]
+        : []),
     ];
 
     const reelJob = {
@@ -275,6 +364,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
           serveUrl: lambdaRender.serveUrl,
         },
         phrase,
+        script: cozyScript,
         voiceText,
       },
       segments,
