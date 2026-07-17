@@ -122,13 +122,18 @@ export const dynamo = {
 
     sortAscending?: boolean;
   }) => {
-    const skExpression = skValue ? ` AND ${skKey} = :rangeValue` : "";
+    // Alias key names so reserved words (e.g. "status") work as keys.
+    const skExpression = skValue ? " AND #sk = :rangeValue" : "";
 
     const params: QueryCommandInput = {
       TableName: tableName,
       IndexName: index,
-      KeyConditionExpression: `${pkKey} = :hashValue${skExpression}`,
+      KeyConditionExpression: `#pk = :hashValue${skExpression}`,
       ScanIndexForward: sortAscending,
+      ExpressionAttributeNames: {
+        "#pk": pkKey,
+        ...(skValue ? { "#sk": skKey } : {}),
+      },
       ExpressionAttributeValues: {
         ":hashValue": pkValue,
       },
@@ -168,8 +173,11 @@ export const dynamo = {
     const params: QueryCommandInput = {
       TableName: tableName,
       IndexName: index,
-      KeyConditionExpression: `${pkKey} = :hashValue`,
+      KeyConditionExpression: "#pk = :hashValue",
       ScanIndexForward: sortAscending,
+      ExpressionAttributeNames: {
+        "#pk": pkKey,
+      },
       ExpressionAttributeValues: {
         ":hashValue": pkValue,
       },
