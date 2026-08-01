@@ -5,6 +5,8 @@
   "main": "serverless.ts",
   "scripts": {
     "build": "serverless package",
+    "opportunities:sync": "node scripts/sync-app-opportunities.mjs",
+    "opportunities:install": "node scripts/install-app-opportunities-agent.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {

@@ -1,6 +1,22 @@
 import type { AWS } from "@serverless/typescript";
 
 const functions: AWS["functions"] = {
+  layerDWorker: {
+    name: "${self:custom.magicLayerWorkerFunctionName}",
+    image: {
+      uri: "${self:custom.magicLayerWorkerImageUri}",
+    },
+    memorySize: 10240,
+    timeout: 900,
+    ephemeralStorageSize: 10240,
+    reservedConcurrency: 1,
+    environment: {
+      ASSETS_BUCKET: "${self:custom.gameMediaBucket}",
+      JOBS_TABLE: "${self:custom.magicLayerJobsTableName}",
+      HF_HUB_OFFLINE: "1",
+      TRANSFORMERS_OFFLINE: "1",
+    },
+  },
   createProject: {
     handler: "src/functions/createProject/index.handler",
     events: [
@@ -35,6 +51,25 @@ const functions: AWS["functions"] = {
     ],
      //@ts-expect-error
      iamRoleStatements: [
+      {
+        Effect: "Allow",
+        Action: ["ses:SendEmail"],
+        Resource: "*",
+      },
+    ],
+  },
+  sacacarnetContact: {
+    handler: "src/functions/sacacarnetContact/index.handler",
+    events: [
+      {
+        httpApi: {
+          method: "post",
+          path: "/sacacarnet/contact",
+        },
+      },
+    ],
+    // @ts-expect-error Provided by serverless-iam-roles-per-function.
+    iamRoleStatements: [
       {
         Effect: "Allow",
         Action: ["ses:SendEmail"],
@@ -567,6 +602,67 @@ const functions: AWS["functions"] = {
     events: [
       { httpApi: { method: "get", path: "/sprite-studio/assets/{assetId}" } },
     ],
+  },
+  createMagicLayerJob: {
+    handler: "src/functions/createMagicLayerJob/index.handler",
+    events: [{ httpApi: { method: "post", path: "/magic-layers/jobs" } }],
+  },
+  verifyMagicLayerAccess: {
+    handler: "src/functions/verifyMagicLayerAccess/index.handler",
+    events: [{ httpApi: { method: "post", path: "/magic-layers/access" } }],
+  },
+  startMagicLayerJob: {
+    handler: "src/functions/startMagicLayerJob/index.handler",
+    timeout: 30,
+    events: [{ httpApi: { method: "post", path: "/magic-layers/jobs/{jobId}/start" } }],
+  },
+  getMagicLayerJob: {
+    handler: "src/functions/getMagicLayerJob/index.handler",
+    timeout: 30,
+    events: [{ httpApi: { method: "get", path: "/magic-layers/jobs/{jobId}" } }],
+  },
+  verifyCreativeStudioAccess: {
+    handler: "src/functions/verifyCreativeStudioAccess/index.handler",
+    events: [{ httpApi: { method: "post", path: "/carousel-studio/access" } }],
+  },
+  creativeStudioUpload: {
+    handler: "src/functions/creativeStudioUpload/index.handler",
+    events: [{ httpApi: { method: "post", path: "/carousel-studio/uploads" } }],
+  },
+  creativeStudioProjects: {
+    handler: "src/functions/creativeStudioProjects/index.handler",
+    timeout: 30,
+    events: [
+      { httpApi: { method: "get", path: "/carousel-studio/projects" } },
+      { httpApi: { method: "post", path: "/carousel-studio/projects" } },
+      { httpApi: { method: "get", path: "/carousel-studio/projects/{projectId}" } },
+      { httpApi: { method: "patch", path: "/carousel-studio/projects/{projectId}" } },
+      { httpApi: { method: "delete", path: "/carousel-studio/projects/{projectId}" } },
+    ],
+  },
+  generateCreativeStudioPlan: {
+    handler: "src/functions/generateCreativeStudioPlan/index.handler",
+    timeout: 90,
+    memorySize: 1024,
+    events: [{ httpApi: { method: "post", path: "/carousel-studio/generate" } }],
+  },
+  verifyAppOpportunitiesAccess: {
+    handler: "src/functions/verifyAppOpportunitiesAccess/index.handler",
+    events: [{ httpApi: { method: "post", path: "/app-opportunities/access" } }],
+  },
+  appOpportunities: {
+    handler: "src/functions/appOpportunities/index.handler",
+    timeout: 29,
+    memorySize: 1024,
+    events: [
+      { httpApi: { method: "get", path: "/app-opportunities" } },
+      { httpApi: { method: "post", path: "/app-opportunities/snapshots" } },
+    ],
+  },
+  enrichAppOpportunities: {
+    handler: "src/functions/enrichAppOpportunities/index.handler",
+    timeout: 180,
+    memorySize: 1024,
   },
 };
 

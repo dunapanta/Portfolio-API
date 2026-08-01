@@ -14,7 +14,7 @@ export const formatJSONResponse = ({
     body: JSON.stringify(data),
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type,Authorization",
+      "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Magic-Layers-Key,X-Creative-Studio-Key,X-App-Opportunities-Key",
       "Access-Control-Allow-Methods": "DELETE,GET,POST,PATCH,OPTIONS",
       ...headers,
     },

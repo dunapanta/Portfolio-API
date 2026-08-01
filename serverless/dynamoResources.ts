@@ -363,6 +363,72 @@ const dynamoResources: AWS["resources"]["Resources"] = {
       BillingMode: "PAY_PER_REQUEST",
     },
   },
+  magicLayerJobsTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.magicLayerJobsTableName}",
+      AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
+      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+      TimeToLiveSpecification: { AttributeName: "expiresAt", Enabled: true },
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
+  creativeProjectsTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.creativeProjectsTableName}",
+      AttributeDefinitions: [
+        { AttributeName: "id", AttributeType: "S" },
+        { AttributeName: "ownerId", AttributeType: "S" },
+        { AttributeName: "createdAt", AttributeType: "S" },
+      ],
+      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "GSI-creative-projects-by-owner",
+          KeySchema: [
+            { AttributeName: "ownerId", KeyType: "HASH" },
+            { AttributeName: "createdAt", KeyType: "RANGE" },
+          ],
+          Projection: { ProjectionType: "ALL" },
+        },
+      ],
+      TimeToLiveSpecification: { AttributeName: "expiresAt", Enabled: true },
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
+  appOpportunitiesTable: {
+    Type: "AWS::DynamoDB::Table",
+    Properties: {
+      TableName: "${self:custom.appOpportunitiesTableName}",
+      AttributeDefinitions: [
+        { AttributeName: "id", AttributeType: "S" },
+        { AttributeName: "entity", AttributeType: "S" },
+        { AttributeName: "capturedAt", AttributeType: "S" },
+        { AttributeName: "countryKeyword", AttributeType: "S" },
+      ],
+      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "GSI-app-opportunities-recent",
+          KeySchema: [
+            { AttributeName: "entity", KeyType: "HASH" },
+            { AttributeName: "capturedAt", KeyType: "RANGE" },
+          ],
+          Projection: { ProjectionType: "ALL" },
+        },
+        {
+          IndexName: "GSI-app-opportunity-history",
+          KeySchema: [
+            { AttributeName: "countryKeyword", KeyType: "HASH" },
+            { AttributeName: "capturedAt", KeyType: "RANGE" },
+          ],
+          Projection: { ProjectionType: "ALL" },
+        },
+      ],
+      BillingMode: "PAY_PER_REQUEST",
+    },
+  },
 };
 
 export default dynamoResources;

@@ -79,6 +79,19 @@ const AssetsBucketAndCloudfront: AWS['resources']['Resources'] = {
           },
         ],
       },
+      LifecycleConfiguration: {
+        Rules: [
+          {
+            Id: 'delete-temporary-magic-layer-assets',
+            Status: 'Enabled',
+            Prefix: 'magic-layers/jobs/',
+            ExpirationInDays: 1,
+            AbortIncompleteMultipartUpload: {
+              DaysAfterInitiation: 1,
+            },
+          },
+        ],
+      },
       PublicAccessBlockConfiguration: {
         BlockPublicAcls: true,
         BlockPublicPolicy: true,
