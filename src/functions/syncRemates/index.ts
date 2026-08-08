@@ -19,18 +19,25 @@ const validationDetailIds = new Set(
 const pendingRecord = ({ listing, existing, pdfS3Key, documentHash, documentFilename, downloadedAt, now }: {
   listing: DiscoveredAuction; existing?: Partial<RemateRecord>; pdfS3Key: string | null; documentHash: string | null;
   documentFilename: string | null; downloadedAt: string | null; now: string;
-}) => ({
-  ...(existing || {}), ...listing, id: listing.sourceAuctionId, entity: "AUCTION", country: "Ecuador", auctionTimezone: "America/Guayaquil",
-  documentSignalingNumber: existing?.documentSignalingNumber ?? null,
-  finalSignalingNumber: existing?.documentSignalingNumber ?? listing.listingSignalingNumber,
-  status: resolveAuctionStatus(existing?.auctionDate || null, listing.publicationEndAt, listing.listingStatus),
-  pdfS3Key, documentHash, documentFilename, documentDownloadedAt: downloadedAt,
-  extractionStatus: pdfS3Key ? "PENDING" : (existing?.extractionStatus || "NOT_AVAILABLE"),
-  extractorVersion: EXTRACTOR_VERSION, promptVersion: PROMPT_VERSION, extractionModel: existing?.extractionModel || null,
-  nativeTextLength: existing?.nativeTextLength || 0, dealScore: existing?.dealScore || 0, verificationScore: existing?.verificationScore || 0,
-  discrepancies: existing?.discrepancies || [], warnings: existing?.warnings || [], evidence: existing?.evidence || [],
-  firstSeenAt: existing?.firstSeenAt || now, lastSeenAt: now, capturedAt: now,
-});
+}) => {
+  const preservesExistingDocument = Boolean(
+    pdfS3Key && documentHash && existing?.pdfS3Key === pdfS3Key && existing?.documentHash === documentHash
+  );
+  return ({
+    ...(existing || {}), ...listing, id: listing.sourceAuctionId, entity: "AUCTION", country: "Ecuador", auctionTimezone: "America/Guayaquil",
+    documentSignalingNumber: existing?.documentSignalingNumber ?? null,
+    finalSignalingNumber: existing?.documentSignalingNumber ?? listing.listingSignalingNumber,
+    status: resolveAuctionStatus(existing?.auctionDate || null, listing.publicationEndAt, listing.listingStatus),
+    pdfS3Key, documentHash, documentFilename, documentDownloadedAt: downloadedAt,
+    extractionStatus: pdfS3Key
+      ? (preservesExistingDocument ? (existing?.extractionStatus || "PENDING") : "PENDING")
+      : (existing?.extractionStatus || "NOT_AVAILABLE"),
+    extractorVersion: EXTRACTOR_VERSION, promptVersion: PROMPT_VERSION, extractionModel: existing?.extractionModel || null,
+    nativeTextLength: existing?.nativeTextLength || 0, dealScore: existing?.dealScore || 0, verificationScore: existing?.verificationScore || 0,
+    discrepancies: existing?.discrepancies || [], warnings: existing?.warnings || [], evidence: existing?.evidence || [],
+    firstSeenAt: existing?.firstSeenAt || now, lastSeenAt: now, capturedAt: now,
+  });
+};
 
 const needsDocumentRefresh = (existing: Partial<RemateRecord> | undefined, now = Date.now()) => {
   if (!existing?.documentHash || existing.extractionStatus !== "COMPLETE") return true;
