@@ -684,7 +684,10 @@ const functions: AWS["functions"] = {
     memorySize: 2048,
     ephemeralStorageSize: 2048,
     events: [
-      { schedule: "${env:REMATES_WEEKLY_SCHEDULE, 'cron(0 11 ? * MON *)'}" },
+      { schedule: { rate: ["${env:REMATES_BIESS_WEEKLY_SCHEDULE, 'cron(0 11 ? * MON *)'}"], input: { source: "BIESS", triggeredBy: "schedule" } } },
+      { schedule: { rate: ["${env:REMATES_SRI_WEEKLY_SCHEDULE, 'cron(0 12 ? * MON *)'}"], input: { source: "SRI", triggeredBy: "schedule" } } },
+      { schedule: { rate: ["${env:REMATES_CJ_WEEKLY_SCHEDULE, 'cron(0 13 ? * MON *)'}"], input: { source: "CJ", triggeredBy: "schedule" } } },
+      { schedule: { rate: ["${env:REMATES_CFN_WEEKLY_SCHEDULE, 'cron(0 14 ? * MON *)'}"], input: { source: "CFN", triggeredBy: "schedule" } } },
     ],
   },
   extractRemateDocument: {

@@ -118,6 +118,7 @@ const parseCards = (html: string, officialListingUrl: string): PageCard[] => {
       listingSignalingNumber: null,
       imageUrls: imagePath ? [new URL(imagePath, ORIGIN).toString()] : [],
       officialListingUrl,
+      officialDocumentUrl: null,
       downloadControl: `formPortalId:bienesId:${index}:j_idt108`,
       detailControl: `formPortalId:bienesId:${index}:j_idt89`,
       rawListingData: {

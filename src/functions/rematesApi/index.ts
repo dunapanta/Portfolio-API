@@ -120,6 +120,7 @@ const stats = async () => {
   const now = new Date();
   const sevenDays = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
   const active = items.filter((item) => ["ACTIVE", "UPCOMING", "AUCTION_TODAY"].includes(item.status));
+  const bySource = Object.fromEntries([...new Set(items.map((item) => item.source))].sort().map((source) => [source, items.filter((item) => item.source === source).length]));
   return formatJSONResponse({ data: {
     total: items.length,
     active: active.length,
@@ -128,6 +129,7 @@ const stats = async () => {
     thirdSignaling: active.filter((item) => item.finalSignalingNumber === 3).length,
     nextSevenDays: active.filter((item) => item.auctionDate && item.auctionDate <= sevenDays).length,
     verifiedDocuments: items.filter((item) => item.extractionStatus === "COMPLETE").length,
+    bySource,
     lastUpdatedAt: items.map((item) => item.lastSeenAt).sort().at(-1) || null,
   } });
 };
@@ -145,12 +147,15 @@ const triggerScrape = async (event: APIGatewayProxyEventV2) => {
   const expected = process.env.REMATES_ADMIN_KEY || process.env.MAGIC_LAYERS_ACCESS_KEY;
   if (!expected || supplied !== expected) return formatJSONResponse({ statusCode: 401, data: { message: "Unauthorized." } });
   if (!process.env.REMATES_SYNC_FUNCTION_NAME) throw new Error("Remates sync function is not configured.");
+  const body = event.body ? JSON.parse(event.body) as { source?: string } : {};
+  const source = String(body.source || "ALL").toUpperCase();
+  if (!["ALL", "BIESS", "SRI", "CJ", "CFN"].includes(source)) return formatJSONResponse({ statusCode: 400, data: { message: "Unsupported source." } });
   await lambda.send(new InvokeCommand({
     FunctionName: process.env.REMATES_SYNC_FUNCTION_NAME,
     InvocationType: "Event",
-    Payload: Buffer.from(JSON.stringify({ source: "BIESS", triggeredBy: "admin" })),
+    Payload: Buffer.from(JSON.stringify({ source, triggeredBy: "admin" })),
   }));
-  return formatJSONResponse({ statusCode: 202, data: { message: "BIESS scrape queued." } });
+  return formatJSONResponse({ statusCode: 202, data: { message: `${source} scrape queued.` } });
 };
 
 export const handler = async (event: APIGatewayProxyEventV2) => {

@@ -44,6 +44,12 @@ Portal oficial: `https://rematevirtual.biess.fin.ec/subasta_prendarios_web/web/p
 - El PDF es escaneado y no tiene texto nativo. Se requiere el fallback de archivo PDF/visión.
 - SHA-256 observado: `5b22fabdf6cb80dfac3885daa2257caaa16d16e55ca951e1424cfdc07f4fbbf0e`.
 
+## Fuentes oficiales validadas
+
+- SRI: página anual estática de Liferay. Cada inmueble enlaza directamente un aviso PDF; el adapter conserva la URL oficial, hash y copia privada. En la validación del 8 de agosto se detectaron 7 avisos inmobiliarios de 2026.
+- Consejo de la Judicatura: JSF/RichFaces. La búsqueda por tipo separa inmuebles urbanos y rurales; ambas listas se recorren con paginación dinámica. El detalle se abre mediante ViewState y el botón `Informe Pericial` entrega un PDF oficial. Una prueba de una página por clasificación encontró 20 inmuebles y descargó un informe de 14 páginas.
+- Portal CFN/Banco del Pacífico/BanEcuador: JSF/PrimeFaces. El código `cod_emp` identifica la institución (`01` CFN, `02` Banco del Pacífico y el código restante BanEcuador). El detalle confirma `Tipo de Bien: INMUEBLE` y expone providencia e informe pericial. Actualmente el portal indicó 24 activos CFN, 25 de Banco del Pacífico y 0 de BanEcuador; el adapter conserva BanEcuador aunque hoy no tenga publicaciones.
+
 ## Diseño implementado
 
 ```text
@@ -51,7 +57,7 @@ EventBridge semanal / trigger admin
               |
               v
        syncRemates Lambda
-    JSF HTTP + cookies + CSRF
+   adapters HTTP + cookies/ViewState
               |
       +-------+--------+
       |                |
@@ -82,7 +88,7 @@ El navegador no se empaqueta en Lambda: Playwright se mantiene para investigaci�
 1. BIESS local: completada. Playwright headed, paginación dinámica, 10 PDFs reales, caso 0110 y fixtures de expectativa.
 2. Extracción: `unpdf` primero; si el texto es insuficiente, Responses API con `input_file` PDF y Structured Outputs. Hash + versiones evitan repetir IA.
 3. Persistencia/API/UI: tabla y bucket dedicados, SQS, API de lectura, panel con filtros, ranking y detalle/provenance.
-4. Cobertura: añadir adaptadores SRI, Consejo de la Judicatura y CFN después de validar por separado sus documentos y mecanismos. Banco del Pacífico/BanEcuador se incorporarán solo cuando se confirme el portal oficial que publica sus activos.
+4. Cobertura multifuente: completada para SRI, Consejo de la Judicatura y el portal conjunto CFN/Banco del Pacífico/BanEcuador. Todos priorizan el PDF oficial cuando existe.
 
 ## Ranking
 
@@ -92,12 +98,13 @@ El navegador no se empaqueta en Lambda: Playwright se mantiene para investigaci�
 
 ## Operación y seguridad
 
-- Scheduler semanal configurable con `REMATES_WEEKLY_SCHEDULE`.
+- Cuatro schedulers semanales escalonados evitan que una fuente lenta bloquee a las demás. Son configurables con `REMATES_BIESS_WEEKLY_SCHEDULE`, `REMATES_SRI_WEEKLY_SCHEDULE`, `REMATES_CJ_WEEKLY_SCHEDULE` y `REMATES_CFN_WEEKLY_SCHEDULE`.
+- `REMATES_MAX_DOCUMENTS_PER_SOURCE_PER_RUN` limita descargas nuevas por fuente. Los pendientes se priorizan automáticamente en la corrida siguiente; los documentos ya verificados se vuelven a comprobar según `REMATES_DOCUMENT_REFRESH_DAYS`.
 - `REMATES_MAX_EXTRACTIONS_PER_RUN` limita trabajos nuevos por corrida; SQS desacopla cada PDF y su retry.
 - Un PDF corrupto no detiene el discovery; el run termina `PARTIAL_SUCCESS` y conserva errores por ítem.
 - No se rompen CAPTCHA, login o controles antibot. Si BIESS los introduce, el run se registra como fallido/bloqueado.
 - Logs JSON por `runId`, acción, ítem, estado y duración; nunca incluyen secretos.
 
-## Criterio para las siguientes fuentes
+## Criterio para fuentes futuras
 
-Cada adaptador debe demostrar primero: fuente oficial, alcance actual, paginación real, URL/documento de mayor autoridad, fixtures representativos, campos faltantes, condición de parada y tasa de extracción revisada. SRI, CJ y CFN no se anunciarán como “cubiertos” hasta superar esa validación.
+Cada adaptador debe demostrar primero: fuente oficial, alcance actual, paginación real, URL/documento de mayor autoridad, fixtures representativos, campos faltantes, condición de parada y tasa de extracción revisada.

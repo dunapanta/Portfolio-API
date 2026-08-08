@@ -57,6 +57,7 @@ export type DiscoveredAuction = {
   listingSignalingNumber: 1 | 2 | 3 | null;
   imageUrls: string[];
   officialListingUrl: string;
+  officialDocumentUrl: string | null;
   downloadControl: string | null;
   detailControl: string | null;
   rawListingData: Record<string, unknown>;
@@ -172,6 +173,12 @@ export type ScrapeMetrics = {
   documentsDownloaded: number;
   documentsReused: number;
   errors: Array<{ itemId?: string; message: string }>;
+};
+
+export type SourceScrapeResult = {
+  auctions: DiscoveredAuction[];
+  documents: AuctionDocument[];
+  metrics: ScrapeMetrics;
 };
 
 export interface AuctionSourceAdapter {

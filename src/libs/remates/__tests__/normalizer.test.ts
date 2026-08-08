@@ -26,6 +26,7 @@ const listing: DiscoveredAuction = {
   listingSignalingNumber: 1,
   imageUrls: [],
   officialListingUrl: "https://rematevirtual.biess.fin.ec/",
+  officialDocumentUrl: null,
   downloadControl: null,
   detailControl: null,
   rawListingData: { signaling: "PRIMERO" },

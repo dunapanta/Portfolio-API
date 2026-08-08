@@ -21,7 +21,13 @@ export const isReusableDocument = (
 
 export const parseEcuadorMoney = (value: string | null | undefined) => {
   if (!value) return null;
-  const normalized = value.replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const clean = value.replace(/[^0-9,.-]/g, "");
+  const comma = clean.lastIndexOf(",");
+  const dot = clean.lastIndexOf(".");
+  const decimal = comma > dot ? "," : dot > comma ? "." : null;
+  const normalized = decimal
+    ? clean.replace(new RegExp(`\\${decimal === "." ? "," : "."}`, "g"), "").replace(decimal, ".")
+    : clean;
   const result = Number(normalized);
   return Number.isFinite(result) ? result : null;
 };
