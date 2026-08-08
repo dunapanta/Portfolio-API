@@ -100,6 +100,7 @@ El navegador no se empaqueta en Lambda: Playwright se mantiene para investigaci�
 
 - Cuatro schedulers semanales escalonados evitan que una fuente lenta bloquee a las demás. Son configurables con `REMATES_BIESS_WEEKLY_SCHEDULE`, `REMATES_SRI_WEEKLY_SCHEDULE`, `REMATES_CJ_WEEKLY_SCHEDULE` y `REMATES_CFN_WEEKLY_SCHEDULE`.
 - `REMATES_MAX_DOCUMENTS_PER_SOURCE_PER_RUN` limita descargas nuevas por fuente. Los pendientes se priorizan automáticamente en la corrida siguiente; los documentos ya verificados se vuelven a comprobar según `REMATES_DOCUMENT_REFRESH_DAYS`.
+- Judicatura recorre un bloque reciente configurable mediante `REMATES_CJ_MAX_PAGES` y procesa informes periciales en lotes pequeños con `REMATES_CJ_MAX_DOCUMENTS_PER_RUN` para respetar el tiempo máximo de Lambda.
 - `REMATES_MAX_EXTRACTIONS_PER_RUN` limita trabajos nuevos por corrida; SQS desacopla cada PDF y su retry.
 - Un PDF corrupto no detiene el discovery; el run termina `PARTIAL_SUCCESS` y conserva errores por ítem.
 - No se rompen CAPTCHA, login o controles antibot. Si BIESS los introduce, el run se registra como fallido/bloqueado.

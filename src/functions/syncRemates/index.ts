@@ -74,7 +74,10 @@ const runSource = async (source: SyncSource) => {
   try {
     const existingItems = ((await dynamo.getAll(tableName)) || []) as Array<Partial<RemateRecord> & { id: string; entity?: string }>;
     const existingById = new Map(existingItems.filter((item) => item.entity === "AUCTION").map((item) => [item.id, item]));
-    const maxDocuments = Math.max(1, Number(process.env.REMATES_MAX_DOCUMENTS_PER_SOURCE_PER_RUN || 25));
+    const configuredMaxDocuments = Math.max(1, Number(process.env.REMATES_MAX_DOCUMENTS_PER_SOURCE_PER_RUN || 25));
+    const maxDocuments = source === "CJ"
+      ? Math.min(configuredMaxDocuments, Math.max(1, Number(process.env.REMATES_CJ_MAX_DOCUMENTS_PER_RUN || 5)))
+      : configuredMaxDocuments;
     const result = await scrapeSource(source, existingById, maxDocuments);
     const { auctions, documents, metrics } = result;
 

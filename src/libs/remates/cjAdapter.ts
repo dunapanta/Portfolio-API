@@ -190,7 +190,7 @@ const findAuction = async (auction: DiscoveredAuction) => {
 };
 
 export const scrapeCj = async ({
-  maxPages = Number(process.env.MAX_PAGES_PER_SOURCE || 30), shouldDownload = () => false, maxDocuments = Number.POSITIVE_INFINITY,
+  maxPages = Number(process.env.REMATES_CJ_MAX_PAGES || 5), shouldDownload = () => false, maxDocuments = Number.POSITIVE_INFINITY,
 }: { maxPages?: number; shouldDownload?: (auction: DiscoveredAuction) => boolean | Promise<boolean>; maxDocuments?: number } = {}) => {
   const auctions: DiscoveredAuction[] = [];
   const documents: AuctionDocument[] = [];
