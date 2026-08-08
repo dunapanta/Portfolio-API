@@ -664,6 +664,45 @@ const functions: AWS["functions"] = {
     timeout: 180,
     memorySize: 1024,
   },
+  rematesApi: {
+    handler: "src/functions/rematesApi/index.handler",
+    timeout: 29,
+    memorySize: 1024,
+    events: [
+      { httpApi: { method: "get", path: "/tools/remates" } },
+      { httpApi: { method: "get", path: "/tools/remates/filters" } },
+      { httpApi: { method: "get", path: "/tools/remates/stats" } },
+      { httpApi: { method: "get", path: "/tools/remates/scrape-runs" } },
+      { httpApi: { method: "get", path: "/tools/remates/{id}" } },
+      { httpApi: { method: "post", path: "/tools/remates/admin/scrape" } },
+    ],
+  },
+  syncRemates: {
+    name: "${self:custom.rematesSyncFunctionName}",
+    handler: "src/functions/syncRemates/index.handler",
+    timeout: 900,
+    memorySize: 2048,
+    ephemeralStorageSize: 2048,
+    events: [
+      { schedule: "${env:REMATES_WEEKLY_SCHEDULE, 'cron(0 11 ? * MON *)'}" },
+    ],
+  },
+  extractRemateDocument: {
+    handler: "src/functions/extractRemateDocument/index.handler",
+    timeout: 300,
+    memorySize: 2048,
+    ephemeralStorageSize: 2048,
+    reservedConcurrency: 2,
+    events: [
+      {
+        sqs: {
+          arn: "arn:aws:sqs:${self:provider.region}:${aws:accountId}:${self:custom.rematesExtractionQueueName}",
+          batchSize: 1,
+          maximumBatchingWindow: 0,
+        },
+      },
+    ],
+  },
 };
 
 export default functions;

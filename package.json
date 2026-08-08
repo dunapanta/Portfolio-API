@@ -6,6 +6,8 @@
   "scripts": {
     "build": "serverless package",
     "opportunities:sync": "node scripts/sync-app-opportunities.mjs",
+    "remates:scrape": "tsx scripts/remates-scrape.ts",
+    "test:remates": "tsx --test src/libs/remates/__tests__/*.test.ts",
     "opportunities:install": "node scripts/install-app-opportunities-agent.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,6 +19,7 @@
     "@aws-sdk/client-lambda": "^3.588.0",
     "@aws-sdk/client-s3": "^3.948.0",
     "@aws-sdk/client-ses": "^3.948.0",
+    "@aws-sdk/client-sqs": "^3.1106.0",
     "@aws-sdk/client-ssm": "^3.948.0",
     "@aws-sdk/lib-dynamodb": "^3.948.0",
     "@aws-sdk/s3-request-presigner": "^3.948.0",
@@ -25,7 +28,8 @@
     "@remotion/lambda": "^4.0.220",
     "@remotion/studio": "4.0.220",
     "file-type": "^18.2.1",
-    "nanoid": "^4.0.2"
+    "nanoid": "^4.0.2",
+    "unpdf": "^1.8.0"
   },
   "devDependencies": {
     "@serverless/typescript": "^3.38.0",
@@ -33,11 +37,13 @@
     "@types/node": "^24.0.0",
     "esbuild": "^0.27.2",
     "json-schema-to-ts": "^1.5.0",
+    "playwright": "^1.62.1",
     "serverless": "^4.39.0",
     "serverless-esbuild": "^1.56.0",
     "serverless-iam-roles-per-function": "^3.2.0",
     "ts-node": "^10.4.0",
     "tsconfig-paths": "^3.9.0",
+    "tsx": "^4.23.11",
     "typescript": "^5.9.3"
   },
   "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",

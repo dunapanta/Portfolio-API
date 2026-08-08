@@ -7,3 +7,8 @@ jspm_packages
 
 # esbuild directories
 .esbuild
+
+# Local remates research artifacts
+fixtures/remates/biess/*.pdf
+fixtures/remates/biess/*.txt
+tmp/

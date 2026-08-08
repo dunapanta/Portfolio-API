@@ -3,6 +3,7 @@ import type { AWS } from "@serverless/typescript";
 import functions from "./serverless/functions";
 import dynamoResources from "./serverless/dynamoResources";
 import AssetsBucketAndCloudfront from "./serverless/AssetsBucketAndCloudfront";
+import rematesResources from "./serverless/rematesResources";
 
 const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
   service: "duportfolioapi",
@@ -42,6 +43,8 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.creativeProjectsTableName}/index/GSI-creative-projects-by-owner",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.appOpportunitiesTableName}",
           "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.appOpportunitiesTableName}/index/*",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.rematesTableName}",
+          "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:custom.rematesTableName}/index/*",
         ],
       },
       //S3
@@ -59,7 +62,14 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
           "arn:aws:s3:::${self:custom.spriteAssetsBucket}/*",
           "arn:aws:s3:::${self:custom.tweetMediaBucket}",
           "arn:aws:s3:::${self:custom.tweetMediaBucket}/*",
+          "arn:aws:s3:::${self:custom.rematesDocumentsBucketName}",
+          "arn:aws:s3:::${self:custom.rematesDocumentsBucketName}/*",
         ],
+      },
+      {
+        Effect: "Allow",
+        Action: ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"],
+        Resource: "arn:aws:sqs:${self:provider.region}:${aws:accountId}:${self:custom.rematesExtractionQueueName}",
       },
       {
         Effect: "Allow",
@@ -81,6 +91,7 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
           "arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:${self:service}-${sls:stage}-generateGameAssetWorker",
           "arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:${self:custom.magicLayerWorkerFunctionName}",
           "arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:${self:service}-${sls:stage}-enrichAppOpportunities",
+          "arn:aws:lambda:${self:provider.region}:${aws:accountId}:function:${self:custom.rematesSyncFunctionName}",
         ],
       },
     ],
@@ -90,7 +101,7 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
     },
     httpApi: {
       cors: {
-        allowedHeaders: ["Content-Type", "Authorization", "X-Magic-Layers-Key", "X-Creative-Studio-Key", "X-App-Opportunities-Key"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Magic-Layers-Key", "X-Creative-Studio-Key", "X-App-Opportunities-Key", "X-Remates-Admin-Key"],
         allowedMethods: ["DELETE", "GET", "POST", "PATCH", "OPTIONS"],
         allowedOrigins: [
           "https://www.dunapant.dev",
@@ -124,6 +135,9 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
       magicLayerJobsTable: "${self:custom.magicLayerJobsTableName}",
       creativeProjectsTable: "${self:custom.creativeProjectsTableName}",
       appOpportunitiesTable: "${self:custom.appOpportunitiesTableName}",
+      rematesTable: "${self:custom.rematesTableName}",
+      rematesDocumentsBucket: "${self:custom.rematesDocumentsBucketName}",
+      rematesExtractionQueueUrl: { Ref: "rematesExtractionQueue" } as never,
       tweetMediaBucket: "${self:custom.tweetMediaBucket}",
       tweetMediaTtlDays: "${self:custom.tweetMediaTtlDays}",
       TWEET_STUDIO_TIMEZONE: "${env:TWEET_STUDIO_TIMEZONE, 'America/Guayaquil'}",
@@ -161,6 +175,12 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
       APP_OPPORTUNITIES_ACCESS_KEY: "${ssm:${self:custom.magicLayersAccessKeyParameterName}}",
       APP_OPPORTUNITIES_MODEL: "${env:APP_OPPORTUNITIES_MODEL, 'gpt-5.4-mini'}",
       APP_OPPORTUNITIES_ENRICH_FUNCTION_NAME: "${self:service}-${sls:stage}-enrichAppOpportunities",
+      OPENAI_EXTRACTION_MODEL: "${env:OPENAI_EXTRACTION_MODEL, 'gpt-5.4-mini'}",
+      REMATES_ADMIN_KEY: "${env:REMATES_ADMIN_KEY, ssm:${self:custom.magicLayersAccessKeyParameterName}}",
+      REMATES_SYNC_FUNCTION_NAME: "${self:custom.rematesSyncFunctionName}",
+      REMATES_MAX_EXTRACTIONS_PER_RUN: "${env:REMATES_MAX_EXTRACTIONS_PER_RUN, '20'}",
+      REMATES_DETAIL_VALIDATION_IDS: "${env:REMATES_DETAIL_VALIDATION_IDS, 'BIESS-UIO-2026-0110'}",
+      MAX_PAGES_PER_SOURCE: "${env:MAX_PAGES_PER_SOURCE, '30'}",
       REMOTION_AWS_REGION: "${env:REMOTION_AWS_REGION, 'us-east-1'}",
       REMOTION_FRAMES_PER_LAMBDA: "${env:REMOTION_FRAMES_PER_LAMBDA, '30'}",
       REMOTION_LAMBDA_FUNCTION_NAME: "${env:REMOTION_LAMBDA_FUNCTION_NAME, self:custom.remotionLambdaFunctionName}",
@@ -176,6 +196,7 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
     Resources: {
       ...dynamoResources,
       ...AssetsBucketAndCloudfront,
+      ...rematesResources,
       
     },
   },
@@ -198,6 +219,11 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
     magicLayerJobsTableName: "${sls:stage}-magic-layer-jobs",
     creativeProjectsTableName: "${sls:stage}-creative-studio-projects",
     appOpportunitiesTableName: "${sls:stage}-app-opportunities",
+    rematesTableName: "${sls:stage}-remates-ecuador",
+    rematesDocumentsBucketName: "${sls:stage}-remates-ecuador-${aws:accountId}",
+    rematesExtractionQueueName: "${sls:stage}-remates-ecuador-extraction",
+    rematesExtractionDeadLetterQueueName: "${sls:stage}-remates-ecuador-extraction-dlq",
+    rematesSyncFunctionName: "${self:service}-${sls:stage}-syncRemates",
     magicLayerWorkerFunctionName: "${self:service}-${sls:stage}-layerd-worker",
     magicLayerWorkerImageUri: "${aws:accountId}.dkr.ecr.${self:provider.region}.amazonaws.com/duportfolioapi-layerd-worker:latest",
     magicLayersAccessKeyParameterName: "/duportfolioapi/${sls:stage}/magic-layers/access-key",
