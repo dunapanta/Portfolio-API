@@ -2,7 +2,7 @@ import { SQSEvent } from "aws-lambda";
 
 import { dynamo } from "@libs/dynamo";
 import { extractRemateDocument } from "@libs/remates/openAiExtraction";
-import { normalizeAuction } from "@libs/remates/normalizer";
+import { EXTRACTOR_VERSION, PROMPT_VERSION, normalizeAuction } from "@libs/remates/normalizer";
 import { getRemateObject, rematesTableName } from "@libs/remates/store";
 import { DiscoveredAuction, RemateRecord } from "@libs/remates/types";
 
@@ -25,8 +25,8 @@ export const handler = async (event: SQSEvent) => {
       if (
         existing?.documentHash === message.documentHash &&
         existing?.extractionStatus === "COMPLETE" &&
-        existing?.extractorVersion === "1.0.0" &&
-        existing?.promptVersion === "remates-ecuador-v1"
+        existing?.extractorVersion === EXTRACTOR_VERSION &&
+        existing?.promptVersion === PROMPT_VERSION
       ) {
         console.log(JSON.stringify({
           action: "extract_remate_document",

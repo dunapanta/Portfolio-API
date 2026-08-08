@@ -6,7 +6,7 @@ import {
   RemateRecord,
 } from "./types";
 
-export const EXTRACTOR_VERSION = "1.0.0";
+export const EXTRACTOR_VERSION = "1.0.1";
 export const PROMPT_VERSION = "remates-ecuador-v1";
 
 export const isReusableDocument = (
@@ -170,6 +170,12 @@ export const normalizeAuction = ({
     (finalSignalingNumber === 3 ? 12 : finalSignalingNumber === 2 ? 7 : 2) +
     verificationScore * 0.2
   )));
+  const warnings = extraction.warnings.filter((warning) => !(
+    warning === "OWNERSHIP_REQUIRES_REVIEW" &&
+    extraction.isFullOwnership === true &&
+    extraction.ownershipPercentage === 100 &&
+    extraction.isPropertyHorizontal === true
+  ));
   const timestamp = now.toISOString();
 
   return {
@@ -192,6 +198,7 @@ export const normalizeAuction = ({
     discountVsAppraisalPct,
     dealScore,
     verificationScore,
+    warnings,
     status: resolveAuctionStatus(extraction.auctionDate, listing.publicationEndAt, listing.listingStatus, now),
     discrepancies,
     pdfS3Key,

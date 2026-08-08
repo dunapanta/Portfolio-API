@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
 import {
+  EXTRACTOR_VERSION,
   explicitHalfBase,
   isReusableDocument,
   normalizeAuction,
@@ -85,6 +86,27 @@ test("horizontal-property aliquots are not mistaken for partial ownership", () =
   });
 });
 
+test("resolved horizontal ownership does not keep a contradictory review warning", () => {
+  const result = normalizeAuction({
+    listing,
+    extraction: {
+      ...extraction,
+      ownershipPercentage: 100,
+      isFullOwnership: true,
+      isPropertyHorizontal: true,
+      warnings: ["OWNERSHIP_REQUIRES_REVIEW"],
+    },
+    documentHash: "hash",
+    pdfS3Key: "document.pdf",
+    documentFilename: "document.pdf",
+    downloadedAt: "2026-08-08T00:00:00.000Z",
+    model: "gpt-5.4-mini",
+    nativeTextLength: 0,
+  });
+
+  assert.deepEqual(result.warnings, []);
+});
+
 test("half of appraisal is derived only from explicit document language", () => {
   assert.equal(explicitHalfBase("El remate se realizará sobre la base de la mitad del precio del avalúo", 251967.44), 125983.72);
   assert.equal(explicitHalfBase("TERCER SEÑALAMIENTO", 251967.44), null);
@@ -95,8 +117,8 @@ test("publication end is not copied into auction date", () => {
 });
 
 test("same successful hash and extractor version is reusable", () => {
-  assert.equal(isReusableDocument({ documentHash: "abc", extractionStatus: "COMPLETE", extractorVersion: "1.0.0", promptVersion: "remates-ecuador-v1" }, "abc"), true);
-  assert.equal(isReusableDocument({ documentHash: "abc", extractionStatus: "FAILED", extractorVersion: "1.0.0", promptVersion: "remates-ecuador-v1" }, "abc"), false);
+  assert.equal(isReusableDocument({ documentHash: "abc", extractionStatus: "COMPLETE", extractorVersion: EXTRACTOR_VERSION, promptVersion: "remates-ecuador-v1" }, "abc"), true);
+  assert.equal(isReusableDocument({ documentHash: "abc", extractionStatus: "FAILED", extractorVersion: EXTRACTOR_VERSION, promptVersion: "remates-ecuador-v1" }, "abc"), false);
 });
 
 test("pagination stops on an empty page", () => {
