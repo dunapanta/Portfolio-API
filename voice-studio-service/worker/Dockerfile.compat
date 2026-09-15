@@ -1,0 +1,13 @@
+# Fast corrective layer on the first deployed image. Dockerfile is the complete
+# from-source equivalent; this pinned base is retained in ECR for reproducibility.
+FROM 824260149345.dkr.ecr.us-east-1.amazonaws.com/duportfolioapi-voice-studio-worker@sha256:0ba07ebe4d9660158aaa6660ccb053bc79d0a7ee0cb92bc8a7ebf50a6218a1d0
+RUN pip install --no-cache-dir numba==0.61.2 llvmlite==0.44.0 \
+    && cp -a /root/.pkuseg /opt/models/pkuseg \
+    && chmod -R a+rX /opt/models/pkuseg
+ENV PKUSEG_HOME=/opt/models/pkuseg PYTHONUNBUFFERED=1
+# Pack dependencies for one sequential read into Lambda's ephemeral disk.
+RUN tar --exclude='__pycache__' -czf /opt/python-runtime.tar.gz -C /usr/local/lib/python3.11/site-packages . \
+    && du -sh /usr/local/lib/python3.11/site-packages /opt/python-runtime.tar.gz /opt/models
+COPY handler.py bootstrap.py .
+
+CMD ["bootstrap.lambda_handler"]

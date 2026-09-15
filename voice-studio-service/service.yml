@@ -1,0 +1,228 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private asynchronous voice cloning and single-speaker dubbing service
+Parameters:
+  SourceBucket:
+    Type: String
+  ApiCodeKey:
+    Type: String
+  WorkerImageUri:
+    Type: String
+  AccessKeyParameter:
+    Type: String
+    Default: /duportfolioapi/dev/magic-layers/access-key
+Resources:
+  Assets:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: ['https://www.dunapant.dev', 'https://dunapant.dev', 'http://localhost:3017']
+            AllowedMethods: [GET, POST, HEAD]
+            AllowedHeaders: ['*']
+            ExposedHeaders: [ETag]
+            MaxAge: 600
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-voice-assets
+            Status: Enabled
+            Prefix: jobs/
+            ExpirationInDays: 1
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+  AssetsPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Assets
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource: [!GetAtt Assets.Arn, !Sub '${Assets.Arn}/*']
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+  Jobs:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+  DeadLetter:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      MessageRetentionPeriod: 86400
+      SqsManagedSseEnabled: true
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      VisibilityTimeout: 5400
+      MessageRetentionPeriod: 21600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetter.Arn
+        maxReceiveCount: 1
+  ApiLog:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/duportfolioapi-voice-studio-api
+      RetentionInDays: 7
+  WorkerLog:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/duportfolioapi-voice-studio-worker
+      RetentionInDays: 7
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: voice-control
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !GetAtt ApiLog.Arn
+              - Effect: Allow
+                Action: [ssm:GetParameter]
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AccessKeyParameter}'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub '${Assets.Arn}/jobs/*'
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]
+                Resource: !GetAtt Jobs.Arn
+              - Effect: Allow
+                Action: [sqs:SendMessage]
+                Resource: !GetAtt Queue.Arn
+  WorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: voice-processing
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !GetAtt WorkerLog.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub '${Assets.Arn}/jobs/*'
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:UpdateItem]
+                Resource: !GetAtt Jobs.Arn
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                Resource: !GetAtt Queue.Arn
+              - Effect: Allow
+                Action: [translate:TranslateText]
+                Resource: '*'
+  Worker:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: duportfolioapi-voice-studio-worker
+      PackageType: Image
+      Code:
+        ImageUri: !Ref WorkerImageUri
+      Role: !GetAtt WorkerRole.Arn
+      Architectures: [x86_64]
+      MemorySize: 10240
+      Timeout: 900
+      ReservedConcurrentExecutions: 1
+      EphemeralStorage:
+        Size: 8192
+      Environment:
+        Variables:
+          ASSETS_BUCKET: !Ref Assets
+          JOBS_TABLE: !Ref Jobs
+  QueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt Queue.Arn
+      FunctionName: !Ref Worker
+      BatchSize: 1
+      Enabled: true
+  Api:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: duportfolioapi-voice-studio-api
+      Runtime: python3.12
+      Handler: api.lambda_handler
+      Role: !GetAtt ApiRole.Arn
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: !Ref ApiCodeKey
+      MemorySize: 256
+      Timeout: 30
+      ReservedConcurrentExecutions: 3
+      Environment:
+        Variables:
+          ASSETS_BUCKET: !Ref Assets
+          JOBS_TABLE: !Ref Jobs
+          QUEUE_URL: !Ref Queue
+          ACCESS_KEY_PARAM: !Ref AccessKeyParameter
+  ApiUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt Api.Arn
+      AuthType: NONE
+      Cors:
+        AllowOrigins: ['https://www.dunapant.dev', 'https://dunapant.dev', 'http://localhost:3017']
+        AllowMethods: [GET, POST]
+        AllowHeaders: [content-type, x-voice-studio-key]
+        MaxAge: 600
+  ApiUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Api
+      Principal: '*'
+      Action: lambda:InvokeFunctionUrl
+      FunctionUrlAuthType: NONE
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Api
+      Principal: '*'
+      Action: lambda:InvokeFunction
+      InvokedViaFunctionUrl: true
+Outputs:
+  ApiUrl:
+    Value: !GetAtt ApiUrl.FunctionUrl
+  AssetsBucket:
+    Value: !Ref Assets
+  JobsTable:
+    Value: !Ref Jobs
+  QueueUrl:
+    Value: !Ref Queue
