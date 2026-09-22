@@ -101,7 +101,7 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
     },
     httpApi: {
       cors: {
-        allowedHeaders: ["Content-Type", "Authorization", "X-Magic-Layers-Key", "X-Creative-Studio-Key", "X-App-Opportunities-Key", "X-Remates-Admin-Key"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Magic-Layers-Key", "X-Creative-Studio-Key", "X-App-Opportunities-Key", "X-Remates-Admin-Key", "X-Sprite-Studio-Key"],
         allowedMethods: ["DELETE", "GET", "POST", "PATCH", "OPTIONS"],
         allowedOrigins: [
           "https://www.dunapant.dev",

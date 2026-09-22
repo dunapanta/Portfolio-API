@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Sprite Gen API routes, Python worker, and durable per-sprite cost ledger.
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+  ApiId:
+    Type: String
+  AssetsBucket:
+    Type: String
+  AccessKeyParameter:
+    Type: String
+  OpenAiKeyParameter:
+    Type: String
+  CreateCodeKey:
+    Type: String
+  GetCodeKey:
+    Type: String
+  WorkerCodeKey:
+    Type: String
+Resources:
+  SpriteGenJobsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${Stage}-sprite-gen-jobs'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+  SpriteGenRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: sprite-gen-runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
+                Resource: '*'
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]
+                Resource: !GetAtt SpriteGenJobsTable.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub 'arn:aws:s3:::${AssetsBucket}/sprite-gen/*'
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AccessKeyParameter}'
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${OpenAiKeyParameter}'
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:duportfolioapi-${Stage}-spriteGenWorker'
+  CreateSpriteGenJob:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'duportfolioapi-${Stage}-createSpriteGenJob'
+      Runtime: nodejs22.x
+      Architectures: [x86_64]
+      Handler: index.handler
+      Role: !GetAtt SpriteGenRole.Arn
+      Timeout: 30
+      MemorySize: 1024
+      Code:
+        S3Bucket: !Ref AssetsBucket
+        S3Key: !Ref CreateCodeKey
+      Environment:
+        Variables:
+          spriteGenJobsTable: !Ref SpriteGenJobsTable
+          spriteAssetsBucket: !Ref AssetsBucket
+          SPRITE_STUDIO_KEY_PARAM: !Ref AccessKeyParameter
+          SPRITE_GEN_WORKER_FUNCTION_NAME: !Sub 'duportfolioapi-${Stage}-spriteGenWorker'
+  GetSpriteGenJob:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'duportfolioapi-${Stage}-getSpriteGenJob'
+      Runtime: nodejs22.x
+      Architectures: [x86_64]
+      Handler: index.handler
+      Role: !GetAtt SpriteGenRole.Arn
+      Timeout: 30
+      MemorySize: 512
+      Code:
+        S3Bucket: !Ref AssetsBucket
+        S3Key: !Ref GetCodeKey
+      Environment:
+        Variables:
+          spriteGenJobsTable: !Ref SpriteGenJobsTable
+          spriteAssetsBucket: !Ref AssetsBucket
+          SPRITE_STUDIO_KEY_PARAM: !Ref AccessKeyParameter
+  SpriteGenWorker:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'duportfolioapi-${Stage}-spriteGenWorker'
+      Runtime: python3.13
+      Architectures: [x86_64]
+      Handler: sprite_worker.handler
+      Role: !GetAtt SpriteGenRole.Arn
+      Timeout: 900
+      MemorySize: 3008
+      EphemeralStorage:
+        Size: 4096
+      ReservedConcurrentExecutions: 1
+      Code:
+        S3Bucket: !Ref AssetsBucket
+        S3Key: !Ref WorkerCodeKey
+      Environment:
+        Variables:
+          spriteGenJobsTable: !Ref SpriteGenJobsTable
+          spriteAssetsBucket: !Ref AssetsBucket
+          OPENAI_API_KEY_PARAM: !Ref OpenAiKeyParameter
+  CreateIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt CreateSpriteGenJob.Arn
+      PayloadFormatVersion: '2.0'
+  GetIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt GetSpriteGenJob.Arn
+      PayloadFormatVersion: '2.0'
+  CreateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: 'POST /sprite-gen/jobs'
+      Target: !Sub 'integrations/${CreateIntegration}'
+  GetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: 'GET /sprite-gen/jobs/{jobId}'
+      Target: !Sub 'integrations/${GetIntegration}'
+  CreatePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CreateSpriteGenJob
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*'
+  GetPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetSpriteGenJob
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*'
+Outputs:
+  JobsTable:
+    Value: !Ref SpriteGenJobsTable
+  WorkerFunction:
+    Value: !Ref SpriteGenWorker
