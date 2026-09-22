@@ -106,6 +106,7 @@ const serverlessConfiguration: AWS & { build: { esbuild: boolean } } = {
         allowedOrigins: [
           "https://www.dunapant.dev",
           "https://dunapant.dev",
+          "https://portfolio-du-b9yo-8zxe-git-cod-421e57-daniel-unapantas-projects.vercel.app",
           "https://sacacarnet.com",
           "https://www.sacacarnet.com",
           "http://localhost:3000",
