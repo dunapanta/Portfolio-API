@@ -10,6 +10,7 @@ ACCESS_PARAM="/duportfolioapi/${STAGE}/sprite-studio/access-key"
 OPENAI_PARAM="/duportfolioapi/${STAGE}/openai/api-key"
 BUILD="$ROOT/.build"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+PREVIEW_ORIGIN="${SPRITE_GEN_PREVIEW_ORIGIN:-https://portfolio-du-b9yo-8zxe-git-cod-421e57-daniel-unapantas-projects.vercel.app}"
 mkdir -p "$BUILD/create" "$BUILD/get"
 
 cd "$ROOT"
@@ -37,7 +38,7 @@ aws cloudformation deploy --region "$REGION" \
     CreateCodeKey="$CREATE_KEY" GetCodeKey="$GET_KEY" WorkerCodeKey="$WORKER_KEY"
 
 aws apigatewayv2 get-api --api-id "$API_ID" --region "$REGION" --query CorsConfiguration --output json > "$BUILD/sprite-gen-cors.json"
-python3 - "$BUILD/sprite-gen-cors.json" <<'PY'
+python3 - "$BUILD/sprite-gen-cors.json" "$PREVIEW_ORIGIN" <<'PY'
 import json, sys
 path = sys.argv[1]
 with open(path) as fh:
@@ -45,6 +46,9 @@ with open(path) as fh:
 headers = cors.setdefault('AllowHeaders', [])
 if 'x-sprite-studio-key' not in [str(value).lower() for value in headers]:
     headers.append('X-Sprite-Studio-Key')
+origins = cors.setdefault('AllowOrigins', [])
+if sys.argv[2] not in origins:
+    origins.append(sys.argv[2])
 with open(path, 'w') as fh:
     json.dump(cors, fh)
 PY
