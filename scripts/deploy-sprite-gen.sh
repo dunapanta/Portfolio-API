@@ -43,7 +43,7 @@ path = sys.argv[1]
 with open(path) as fh:
     cors = json.load(fh) or {}
 headers = cors.setdefault('AllowHeaders', [])
-if 'X-Sprite-Studio-Key' not in headers:
+if 'x-sprite-studio-key' not in [str(value).lower() for value in headers]:
     headers.append('X-Sprite-Studio-Key')
 with open(path, 'w') as fh:
     json.dump(cors, fh)
